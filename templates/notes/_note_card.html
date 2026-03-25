@@ -38,7 +38,7 @@
     </span>
   </div>
   <div class="note-card-bottom">
-    <div class="note-actions-pro">
+    <div class="note-actions-pro" style="width: 100%; justify-content: center;">
       {% if is_auth %}
       <button class="action-btn-pro action-save {{ 'saved' if note_id in saved_ids else '' }}"
               onclick="toggleSave({{ note_id }}, this)"
