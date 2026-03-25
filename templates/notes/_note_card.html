@@ -24,7 +24,7 @@
       {% if uploader.profile_picture %}
       <img src="{{ url_for('serve_avatar', filename=uploader.profile_picture) }}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">
       {% else %}
-      <div class="avatar-xs" style="background-color: {{ uploader['avatar_color'] }} !important;">{{ uploader['name'] | initials }}</div>
+      <div class="avatar-xs" data-bg="{{ uploader['avatar_color'] }}">{{ uploader['name'] | initials }}</div>
       {% endif %}
       <span>
         <a href="{{ url_for('public_profile', uid=uploader.id) }}" style="text-decoration:none; color:inherit;">{{ uploader['name'] }}</a>

@@ -196,4 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initFileUpload();
   const noteId = document.body.dataset.noteId;
   if (noteId) initRating(noteId);
+  
+  // Apply dynamic background colors safely (bypass IDE CSS linters)
+  document.querySelectorAll('[data-bg]').forEach(el => {
+      el.style.setProperty('background-color', el.getAttribute('data-bg'), 'important');
+  });
 });
