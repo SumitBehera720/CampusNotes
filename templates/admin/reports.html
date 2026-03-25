@@ -1,0 +1,53 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Reports{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-title">🚩 User Reports</div>
+
+<div class="table-card">
+  <div class="table-card-header">All Reports ({{ reports|length }})</div>
+  {% if reports %}
+  <table>
+    <thead>
+      <tr><th>Note</th><th>Reporter</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for r in reports %}
+      <tr>
+        <td>
+          <a href="{{ url_for('note_detail', nid=r['note_id']) }}" style="color:var(--accent); font-weight:600">
+            Note #{{ r['note_id'] }}
+          </a>
+          <br><small style="color:var(--muted)">{{ r.note['title'][:40] if r.note else 'Deleted' }}</small>
+        </td>
+        <td>
+          {% if r['reporter_name'] %}<div style="font-size:0.85rem">{{ r['reporter_name'].name }}<br><small style="color:var(--muted)">{{ r['reporter_name'].email }}</small></div>{% else %}Unknown{% endif %}
+        </td>
+        <td style="max-width:200px; font-size:0.875rem">{{ r['reason'] }}</td>
+        <td><span class="status-badge {{ 'status-approved' if r['status'] == 'resolved' else 'status-pending' }}">{{ r['status'].title() }}</span></td>
+        <td>{{ r['created_at'] | fmt_date }}</td>
+        <td>
+          {% if r['status'] == 'open' %}
+          <div style="display:flex; gap:6px;">
+            <form method="post" action="{{ url_for('admin_resolve_report', rid=r['id']) }}">
+              <button type="submit" class="btn btn-success btn-sm">Resolve</button>
+            </form>
+            <a href="{{ url_for('admin_review_note', nid=r['note_id']) }}" class="btn btn-warning btn-sm">Review Note</a>
+          </div>
+          {% else %}
+          <span style="color:var(--muted); font-size:0.8rem">Resolved</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🎉</div>
+    <div class="empty-title">No reports</div>
+    <div class="empty-text">Great — no issues reported!</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

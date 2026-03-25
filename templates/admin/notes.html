@@ -1,0 +1,56 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Manage Notes{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-title">Manage Notes</div>
+
+<!-- Filter tabs -->
+<div style="display:flex; gap:8px; margin-bottom:20px;">
+  <a href="{{ url_for('admin_notes', status='pending') }}" class="btn {{ 'btn-warning' if status_filter == 'pending' else 'btn-outline' }}">⏳ Pending</a>
+  <a href="{{ url_for('admin_notes', status='approved') }}" class="btn {{ 'btn-success' if status_filter == 'approved' else 'btn-outline' }}">✅ Approved</a>
+  <a href="{{ url_for('admin_notes', status='rejected') }}" class="btn {{ 'btn-danger' if status_filter == 'rejected' else 'btn-outline' }}">❌ Rejected</a>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    {{ status_filter.title() }} Notes ({{ notes|length }})
+  </div>
+  {% if notes %}
+  <table>
+    <thead>
+      <tr><th>Title</th><th>Subject</th><th>Branch/Sem</th><th>Type</th><th>Uploader</th><th>Date</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for note in notes %}
+      <tr>
+        <td>
+          <a href="{{ url_for('note_detail', nid=note['id']) }}" style="font-weight:600; color:var(--accent)">
+            {{ note['title'][:40] }}{% if note['title']|length > 40 %}…{% endif %}
+          </a>
+          {% if note['featured'] %}<span style="font-size:0.7rem; color:#d97706"> ⭐Featured</span>{% endif %}
+        </td>
+        <td>{{ note['subject'] }}</td>
+        <td>{{ note['branch'] }} / Sem {{ note['semester'] }}</td>
+        <td><span class="note-type-badge {% if note['note_type']=='PDF' %}badge-pdf{% elif note['note_type']=='PPT' %}badge-ppt{% else %}badge-default{% endif %}" style="font-size:0.7rem">{{ note['note_type'] }}</span></td>
+        <td>{{ note['uploader_name'] }}</td>
+        <td>{{ note['uploaded_at'] | fmt_date }}</td>
+        <td>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <a href="{{ url_for('admin_review_note', nid=note['id']) }}" class="btn btn-primary btn-sm">Review</a>
+            <form method="post" action="{{ url_for('admin_delete_note', nid=note['id']) }}" onsubmit="return confirm('Delete permanently?')">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">{% if status_filter == 'pending' %}⏳{% elif status_filter == 'approved' %}✅{% else %}❌{% endif %}</div>
+    <div class="empty-title">No {{ status_filter }} notes</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+.env
+
+# Database
+database.db
+
+# Uploads
+uploads/
+avatars/
+
+# IDES
+.vscode/
+.idea/

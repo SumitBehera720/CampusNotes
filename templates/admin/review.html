@@ -1,0 +1,117 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Review Note{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+  <a href="{{ url_for('admin_notes') }}" class="btn btn-outline btn-sm">← Back</a>
+  <div class="admin-page-title" style="margin-bottom:0">Review Note</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:24px">
+  <div>
+    <div class="table-card" style="margin-bottom:20px;overflow:hidden">
+      <div class="table-card-header">Preview</div>
+      <div style="background:#1a1a2e;min-height:400px;display:flex;align-items:center;justify-content:center">
+        {% if note['file_ext'] == 'pdf' %}
+        <iframe src="{{ url_for('preview_note', nid=note['id']) }}" style="width:100%;height:480px;border:none"></iframe>
+        {% elif note['file_ext'] in ['png','jpg','jpeg'] %}
+        <img src="{{ url_for('preview_note', nid=note['id']) }}" style="max-height:480px;object-fit:contain;width:100%">
+        {% else %}
+        <div style="text-align:center;color:rgba(255,255,255,0.5)">
+          <div style="font-size:4rem;margin-bottom:12px">{% if note['file_ext'] in ['ppt','pptx'] %}📊{% elif note['file_ext'] in ['doc','docx'] %}📝{% else %}📁{% endif %}</div>
+          <p>{{ note['file_name'] }}<br><small>Download to preview</small></p>
+          <a href="{{ url_for('download_note', nid=note['id']) }}" class="btn btn-outline btn-sm" style="margin-top:12px;color:#fff;border-color:rgba(255,255,255,0.3)">Download</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% if note['description'] %}
+    <div class="table-card" style="margin-bottom:20px">
+      <div class="table-card-header">Description</div>
+      <div style="padding:16px;font-size:0.875rem;line-height:1.7">{{ note['description'] }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="table-card" style="margin-bottom:16px">
+      <div class="table-card-header">Note Details</div>
+      <div style="padding:16px">
+        <div class="detail-badges" style="margin-bottom:12px">
+          <span class="status-badge status-{{ note['status'] }}">{{ note['status'] | title }}</span>
+          <span class="note-type-badge badge-default">{{ note['note_type'] }}</span>
+          {% if note['featured'] %}<span class="note-type-badge" style="background:#fef3c7;color:#92400e">⭐ Featured</span>{% endif %}
+        </div>
+        <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:12px">{{ note['title'] }}</h3>
+        {% for label, val in [('Subject', note['subject']), ('Branch', note['branch']), ('Semester', note['semester']),
+                               ('Difficulty', note['difficulty']), ('File', note['file_name']),
+                               ('Size', note['file_size'] | file_size_str), ('Uploaded', note['uploaded_at'] | fmt_date)] %}
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem">
+          <span style="color:var(--muted)">{{ label }}</span><strong>{{ val }}</strong>
+        </div>
+        {% endfor %}
+        {% if note['college'] %}<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem"><span style="color:var(--muted)">College</span><strong>{{ note['college'] }}</strong></div>{% endif %}
+        {% if note['tags'] %}<div style="padding:6px 0;font-size:0.85rem"><span style="color:var(--muted)">Tags: </span>{{ note['tags'] }}</div>{% endif %}
+        {% if note['reject_reason'] %}<div style="padding:8px;background:#fef2f2;border-radius:6px;margin-top:8px;font-size:0.85rem;color:#991b1b">Rejected: {{ note['reject_reason'] }}</div>{% endif %}
+      </div>
+    </div>
+
+    {% if uploader %}
+    <div class="table-card" style="margin-bottom:16px">
+      <div class="table-card-header">Uploader</div>
+      <div style="padding:16px;display:flex;gap:12px;align-items:center">
+        <div class="user-avatar-lg" style="background:{{ uploader['avatar_color'] }}">{{ uploader['name'] | initials }}</div>
+        <div>
+          <div style="font-weight:600">{{ uploader['name'] }}</div>
+          <div style="font-size:0.8rem;color:var(--muted)">{{ uploader['email'] }}</div>
+          {% if uploader['college'] %}<div style="font-size:0.8rem;color:var(--muted)">{{ uploader['college'] }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if note['status'] == 'pending' %}
+    <div class="table-card" style="margin-bottom:16px">
+      <div class="table-card-header" style="background:#f0fdf4">✅ Approve</div>
+      <div style="padding:16px">
+        <form method="post">
+          <input type="hidden" name="action" value="approve">
+          <button type="submit" class="btn btn-success w-full" style="justify-content:center">Approve & Publish</button>
+        </form>
+      </div>
+    </div>
+    <div class="table-card" style="margin-bottom:16px">
+      <div class="table-card-header" style="background:#fef2f2">❌ Reject</div>
+      <div style="padding:16px">
+        <form method="post">
+          <input type="hidden" name="action" value="reject">
+          <div class="form-group">
+            <label style="font-size:0.85rem">Reason</label>
+            <textarea name="reason" class="form-control" rows="3" placeholder="Explain why…" style="min-height:80px"></textarea>
+          </div>
+          <button type="submit" class="btn btn-danger w-full" style="justify-content:center">Reject Note</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if note['status'] == 'approved' %}
+    <div class="table-card" style="margin-bottom:16px">
+      <div class="table-card-header">⭐ Feature</div>
+      <div style="padding:16px">
+        <form method="post">
+          <input type="hidden" name="action" value="feature">
+          <button type="submit" class="btn {{ 'btn-warning' if not note['featured'] else 'btn-outline' }} w-full" style="justify-content:center">
+            {{ '⭐ Feature this note' if not note['featured'] else '✕ Remove from featured' }}
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('admin_delete_note', nid=note['id']) }}" onsubmit="return confirm('Delete permanently?')">
+      <button type="submit" class="btn btn-danger w-full" style="justify-content:center">🗑 Delete Permanently</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

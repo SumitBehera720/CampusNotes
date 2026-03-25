@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}My Notes{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 32px 24px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+    <h1 style="font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800">📄 My Notes</h1>
+    <a href="{{ url_for('upload') }}" class="btn btn-primary">+ Upload New</a>
+  </div>
+
+  {% if notes %}
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th><th>Subject</th><th>Branch</th><th>Sem</th>
+          <th>Type</th><th>Status</th><th>Downloads</th><th>Date</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for note in notes %}
+        <tr>
+          <td><a href="{{ url_for('note_detail', nid=note['id']) }}" style="font-weight:600; color:var(--accent)">{{ note['title'][:40] }}{% if note['title']|length > 40 %}…{% endif %}</a></td>
+          <td>{{ note['subject'] }}</td>
+          <td>{{ note['branch'] }}</td>
+          <td>{{ note['semester'] }}</td>
+          <td><span class="note-type-badge {% if note['note_type']=='PDF' %}badge-pdf{% elif note['note_type']=='PPT' %}badge-ppt{% else %}badge-default{% endif %}" style="font-size:0.7rem">{{ note['note_type'] }}</span></td>
+          <td>
+            <span class="status-badge status-{{ note['status'] }}">{{ note['status'].title() }}</span>
+            {% if note['status'] == 'rejected' and note['reject_reason'] %}
+            <br><small style="color:var(--danger);font-size:0.7rem" title="{{ note['reject_reason'] }}">Reason: {{ note['reject_reason'][:30] }}…</small>
+            {% endif %}
+          </td>
+          <td>{{ note['downloads'] }}</td>
+          <td>{{ note['uploaded_at'] | fmt_short }}</td>
+          <td>
+            <form method="post" action="{{ url_for('delete_my_note', nid=note['id']) }}"
+                  onsubmit="return confirm('Delete permanently?')">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📭</div>
+    <div class="empty-title">No notes uploaded yet</div>
+    <div class="empty-text">Share your knowledge — upload your first note!</div>
+    <a href="{{ url_for('upload') }}" class="btn btn-primary mt-4">Upload Note</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

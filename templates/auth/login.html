@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-page login">
+  <div class="stars-container">
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+    <div class="star-fall"></div>
+  </div>
+  <!-- Removed Panda Graphic -->
+  <div class="auth-card">
+    <div class="auth-logo" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 24px;">
+      <div style="width: 56px; height: 56px; background: #050505; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 1.2rem; font-family: 'Syne', sans-serif; margin-bottom: 12px; border: 2px solid #FFFFFF;">CN</div>
+      <div style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem;">Campus<strong style="color:var(--primary)">Notes</strong></div>
+    </div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-subtitle">Sign in to access notes and your dashboard</div>
+
+    <form method="post">
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" name="email" id="emailField" class="form-control" placeholder="you@college.edu" required autofocus>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="password-field">
+          <input type="password" name="password" id="passwordField" class="form-control" placeholder="••••••••" required>
+          <button type="button" class="password-toggle" onclick="togglePassword('passwordField')">👁</button>
+        </div>
+      </div>
+      <div class="form-group checkbox-group">
+        <input type="checkbox" name="remember" id="remember">
+        <label for="remember" style="font-weight: 400; font-size: 0.875rem; margin-bottom: 0">Keep me signed in</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg w-full" style="justify-content: center; margin-top: 8px;">
+        Sign In →
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="{{ url_for('register') }}">Create one free</a>
+    </div>
+
+    <div style="text-align:center; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+      <small style="color: var(--muted); font-size: 0.75rem;">
+        
+      </small>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  function togglePassword(id) {
+    const input = document.getElementById(id);
+    const btn = input.nextElementSibling;
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? '👁' : '🙈';
+  }
+</script>
+{% endblock %}

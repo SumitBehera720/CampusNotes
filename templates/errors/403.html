@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Access Denied{% endblock %}
+{% block content %}
+<div class="empty-state" style="padding: 120px 24px;">
+  <div class="empty-icon">🔒</div>
+  <h1 class="empty-title" style="font-size:2rem">403 — Access Denied</h1>
+  <div class="empty-text">You don't have permission to view this page.</div>
+  <a href="{{ url_for('index') }}" class="btn btn-primary mt-4">← Go Home</a>
+</div>
+{% endblock %}

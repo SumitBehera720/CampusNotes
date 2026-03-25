@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="form-page">
+  <div class="container-sm">
+    <div class="form-card">
+
+      <!-- ========== VIEW MODE ========== -->
+      <div id="profileViewMode">
+        <div style="display:flex; align-items:center; gap:20px; margin-bottom:28px;">
+          <div class="profile-avatar-container" style="position: relative; width: 80px; height: 80px; flex-shrink: 0;">
+            {% if current_user['profile_picture'] %}
+            <img src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}" 
+                 alt="Profile" 
+                 style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);">
+            {% else %}
+            <div class="user-avatar-lg" style="background:{{ current_user['avatar_color'] }}; width:80px; height:80px; font-size:1.6rem; border: 3px solid var(--primary);">{{ user_initials }}</div>
+            {% endif %}
+          </div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div>
+                <h1 style="margin: 0; font-size: 1.5rem; font-weight: 800; font-family: 'Syne', sans-serif;">{{ current_user['name'] }}</h1>
+                <div style="color:var(--muted); font-size:0.85rem; margin-top: 4px;">{{ current_user['email'] }}</div>
+              </div>
+              <button type="button" onclick="toggleProfileEdit(true)" class="btn btn-primary btn-sm" style="white-space: nowrap;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit Profile
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px;">
+          <div class="profile-info-item">
+            <div class="profile-info-label">College / University</div>
+            <div class="profile-info-value">{{ current_user['college'] or '—' }}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Branch</div>
+            <div class="profile-info-value">{{ current_user['branch'] or '—' }}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Semester</div>
+            <div class="profile-info-value">{% if current_user['semester'] %}Semester {{ current_user['semester'] }}{% else %}—{% endif %}</div>
+          </div>
+          <div class="profile-info-item">
+            <div class="profile-info-label">Member Since</div>
+            <div class="profile-info-value">{{ current_user['created_at'] | fmt_date }}</div>
+          </div>
+        </div>
+
+        {% if current_user['bio'] %}
+        <div class="profile-info-item" style="margin-top: 16px;">
+          <div class="profile-info-label">Bio</div>
+          <div class="profile-info-value">{{ current_user['bio'] }}</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ========== EDIT MODE (hidden by default) ========== -->
+      <div id="profileEditMode" style="display: none;">
+        <div style="display:flex; align-items:center; justify-content: space-between; gap:16px; margin-bottom:28px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="form-title" style="margin-bottom:0">Edit Profile</div>
+          </div>
+          <button type="button" onclick="toggleProfileEdit(false)" class="btn btn-outline btn-sm">
+            Cancel
+          </button>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+          <!-- Profile Picture Upload -->
+          <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 24px; padding: 20px; background: var(--bg-primary); border-radius: 12px; border: 1px solid var(--border);">
+            <div class="profile-pic-upload" style="position: relative; cursor: pointer;" onclick="document.getElementById('profilePicInput').click()">
+              {% if current_user['profile_picture'] %}
+              <img id="profilePicPreview" src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}" 
+                   alt="Profile" 
+                   style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
+              {% else %}
+              <div id="profilePicPreview" class="user-avatar-lg" style="background:{{ current_user['avatar_color'] }}; width:72px; height:72px; font-size:1.4rem">{{ user_initials }}</div>
+              {% endif %}
+              <div class="pic-upload-overlay" style="position:absolute; inset:0; border-radius:50%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; opacity:0; transition: opacity 0.2s; cursor: pointer;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <input type="file" id="profilePicInput" name="profile_picture" accept="image/*" style="display:none" onchange="previewProfilePic(this)">
+            </div>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">Profile Picture</div>
+              <div style="font-size: 0.78rem; color: var(--muted); margin-top: 2px;">Click to upload a new photo</div>
+              <div style="font-size: 0.72rem; color: var(--muted);">JPG, PNG or GIF • Max 5MB</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="name" class="form-control" value="{{ current_user['name'] }}" required>
+          </div>
+          <div class="form-group">
+            <label>College / University</label>
+            <input type="text" name="college" class="form-control" value="{{ current_user['college'] or '' }}" placeholder="Your college name">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Branch</label>
+              <select name="branch" class="form-control">
+                <option value="">Select Branch</option>
+                {% for b in config.BRANCHES %}
+                <option value="{{ b }}" {% if current_user['branch'] == b %}selected{% endif %}>{{ b }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Current Semester</label>
+              <select name="semester" class="form-control">
+                <option value="">Select Semester</option>
+                {% for s in config.SEMESTERS %}
+                <option value="{{ s }}" {% if current_user.semester == s %}selected{% endif %}>Semester {{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Bio</label>
+            <textarea name="bio" class="form-control textarea" placeholder="Tell other students about yourself…">{{ current_user.bio or '' }}</textarea>
+          </div>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 20px; margin: 20px 0;">
+            <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); font-weight:600; margin-bottom:12px">🔒 Change Password (optional)</div>
+            <div class="form-group">
+              <label>Current Password</label>
+              <div class="password-field">
+                <input type="password" name="current_password" id="currentPwd" class="form-control" placeholder="Enter current password">
+                <button type="button" class="password-toggle" onclick="togglePwdVisibility('currentPwd', this)" title="Show password">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <div class="password-field">
+                <input type="password" name="new_password" id="newPwd" class="form-control" placeholder="Min 6 characters">
+                <button type="button" class="password-toggle" onclick="togglePwdVisibility('newPwd', this)" title="Show password">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:12px;">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <button type="button" onclick="toggleProfileEdit(false)" class="btn btn-outline">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleProfileEdit(showEdit) {
+  document.getElementById('profileViewMode').style.display = showEdit ? 'none' : 'block';
+  document.getElementById('profileEditMode').style.display = showEdit ? 'block' : 'none';
+}
+
+function togglePwdVisibility(inputId, btn) {
+  var inp = document.getElementById(inputId);
+  var eyeOpen = btn.querySelector('.eye-open');
+  var eyeClosed = btn.querySelector('.eye-closed');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    eyeOpen.style.display = 'none';
+    eyeClosed.style.display = 'block';
+  } else {
+    inp.type = 'password';
+    eyeOpen.style.display = 'block';
+    eyeClosed.style.display = 'none';
+  }
+}
+
+function previewProfilePic(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var preview = document.getElementById('profilePicPreview');
+      if (preview.tagName === 'IMG') {
+        preview.src = e.target.result;
+      } else {
+        var img = document.createElement('img');
+        img.id = 'profilePicPreview';
+        img.src = e.target.result;
+        img.style.cssText = 'width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--border);';
+        preview.parentNode.replaceChild(img, preview);
+      }
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+// Show overlay on hover
+document.querySelectorAll('.profile-pic-upload').forEach(function(el) {
+  var overlay = el.querySelector('.pic-upload-overlay');
+  if (overlay) {
+    el.addEventListener('mouseenter', function() { overlay.style.opacity = '1'; });
+    el.addEventListener('mouseleave', function() { overlay.style.opacity = '0'; });
+  }
+});
+</script>
+{% endblock %}

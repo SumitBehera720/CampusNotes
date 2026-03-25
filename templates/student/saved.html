@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Saved Notes{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 32px 24px;">
+  <h1 style="font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; margin-bottom:24px">🔖 Saved Notes ({{ saved|length }})</h1>
+
+  {% if saved %}
+  <div class="notes-grid">
+    {% for note in saved %}
+      {% include 'notes/_note_card.html' %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🔖</div>
+    <div class="empty-title">No saved notes</div>
+    <div class="empty-text">Bookmark notes while browsing to save them here.</div>
+    <a href="{{ url_for('browse') }}" class="btn btn-primary mt-4">Browse Notes</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

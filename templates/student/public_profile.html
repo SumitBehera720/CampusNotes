@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}{{ user.name }}'s Profile — CampusNotes{% endblock %}
+
+{% block content %}
+<div class="profile-header" style="background:var(--bg-primary); padding:60px 20px 40px; border-bottom:1px solid var(--border);">
+  <div class="container" style="max-width:900px; display:flex; gap:30px; align-items:center;">
+    {% if user.profile_picture %}
+    <img src="{{ url_for('serve_avatar', filename=user.profile_picture) }}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid var(--card-bg);box-shadow:var(--shadow-md);">
+    {% else %}
+    <div class="avatar-lg" style="background:{{ user.avatar_color }}; width:120px; height:120px; font-size:48px; border:4px solid var(--card-bg);box-shadow:var(--shadow-md);">{{ user.name | initials }}</div>
+    {% endif %}
+    
+    <div style="flex:1;">
+      <h1 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
+        {{ user.name }}
+        {% if user.is_verified %}<span title="Verified Contributor" style="color:var(--accent); font-size:24px;">✓</span>{% endif %}
+      </h1>
+      
+      <div style="color:var(--text-secondary); margin-bottom:16px;">
+        {% if user.college %}{{ user.college }}{% else %}CampusNotes Student{% endif %}
+        {% if user.branch %} • {{ user.branch }}{% endif %}
+        {% if user.semester %} • Sem {{ user.semester }}{% endif %}
+      </div>
+      
+      <div style="display:flex; gap:20px; margin-bottom:20px;">
+        <div style="text-align:center;">
+          <div style="font-size:1.5rem; font-weight:700;">{{ notes|length }}</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase;">Uploads</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.5rem; font-weight:700;">{{ followers }}</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase;">Followers</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.5rem; font-weight:700;">{{ following }}</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase;">Following</div>
+        </div>
+      </div>
+      
+      {% if is_auth and current_user.id != user.id %}
+      <div>
+        {% if is_following %}
+        <button class="btn btn-outline" onclick="toggleFollow({{ user.id }}, this, true)">Following ✓</button>
+        {% else %}
+        <button class="btn btn-primary" onclick="toggleFollow({{ user.id }}, this, false)">Follow {{ user.name.split()[0] }}</button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="container" style="max-width:900px; padding:40px 20px;">
+  <div style="display:flex; gap:40px;">
+    
+    <!-- Left Col (Badges & Bio) -->
+    <div style="flex:1; max-width:280px;">
+      {% if user.bio %}
+      <div class="card" style="padding:24px; margin-bottom:24px;">
+        <h3 style="margin:0 0 12px 0; font-size:1.1rem;">About</h3>
+        <p style="color:var(--text-secondary); line-height:1.6; margin:0;">{{ user.bio }}</p>
+      </div>
+      {% endif %}
+      
+      <div class="card" style="padding:24px;">
+        <h3 style="margin:0 0 16px 0; font-size:1.1rem;">Badges ({{ badges|length }})</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:12px;">
+          {% for b in badges %}
+          <div title="{{ badge_types[b].name }}: {{ badge_types[b].desc }}" style="background:var(--bg-primary); padding:12px; border-radius:12px; border:1px solid var(--border); text-align:center; width:calc(50% - 6px);">
+            <div style="font-size:24px; margin-bottom:4px;">{{ badge_types[b].icon }}</div>
+            <div style="font-size:0.7rem; font-weight:600; color:var(--text-secondary);">{{ badge_types[b].name }}</div>
+          </div>
+          {% else %}
+          <div style="color:var(--text-secondary); font-size:0.9rem;">No badges earned yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Col (Notes) -->
+    <div style="flex:2;">
+      <h2 style="margin:0 0 20px 0; font-size:1.3rem;">Uploaded Notes</h2>
+      <div class="notes-grid" style="grid-template-columns: 1fr; gap:16px;">
+        {% for note in notes %}
+        <div class="note-card fade-up" style="display:flex; flex-direction:row; padding:16px; align-items:center;">
+          <div style="flex:1;">
+            <a href="{{ url_for('note_detail', nid=note.id) }}" style="text-decoration:none;">
+              <div class="note-title" style="font-size:1.1rem;">{{ note.title }}</div>
+            </a>
+            <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:8px;">{{ note.subject }}</div>
+            <div class="note-meta">
+              <span class="meta-tag">{{ note.note_type }}</span>
+              <span class="meta-tag">{{ note.difficulty }}</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:16px; align-items:center; border-left:1px solid var(--border); padding-left:16px; margin-left:16px;">
+            <div style="text-align:center;">
+              <div style="font-weight:600;">{{ note.downloads | compact_num }}</div>
+              <div style="font-size:0.75rem; color:var(--text-secondary);">DLs</div>
+            </div>
+            <a href="{{ url_for('note_detail', nid=note.id) }}" class="btn btn-primary" style="padding:8px 16px; border-radius:8px;">View</a>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📂</div>
+          <div class="empty-title">No notes yet</div>
+          <div class="empty-text">This student hasn't uploaded any notes.</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<script>
+function toggleFollow(userId, btnElement, currentlyFollowing) {
+    const action = currentlyFollowing ? 'unfollow' : 'follow';
+    fetch(`/${action}/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.ok || data.error) {
+            window.location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

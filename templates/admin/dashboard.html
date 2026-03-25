@@ -1,0 +1,122 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-title">Dashboard Overview</div>
+
+<!-- STAT CARDS -->
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="stat-card-label">Total Students</div>
+    <div class="stat-card-value">{{ total_users }}</div>
+    <div class="stat-card-icon">👥</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-label">Approved Notes</div>
+    <div class="stat-card-value">{{ total_notes }}</div>
+    <div class="stat-card-icon">📄</div>
+  </div>
+  <div class="stat-card" style="border-color: #fcd34d;">
+    <div class="stat-card-label">Pending Review</div>
+    <div class="stat-card-value" style="color: var(--warning)">{{ pending }}</div>
+    <div class="stat-card-icon">⏳</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-label">Total Downloads</div>
+    <div class="stat-card-value">{{ total_downloads }}</div>
+    <div class="stat-card-icon">⬇</div>
+  </div>
+  <div class="stat-card" style="{{ 'border-color: #fca5a5;' if reports > 0 }}">
+    <div class="stat-card-label">Open Reports</div>
+    <div class="stat-card-value" style="{{ 'color: var(--danger)' if reports > 0 }}">{{ reports }}</div>
+    <div class="stat-card-icon">🚩</div>
+  </div>
+</div>
+
+<!-- Upload Chart -->
+<div class="table-card" style="margin-bottom: 24px;">
+  <div class="table-card-header">Notes Uploaded (Last 7 Days)</div>
+  <div style="padding: 20px; height: 140px; display: flex; align-items: flex-end; gap: 12px;">
+    {% set max_count = daily_data | map(attribute='count') | max | default(1) %}
+    {% for d in daily_data %}
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <span style="font-size:0.75rem; color:var(--muted)">{{ d.count }}</span>
+      <div style="width:100%; background:var(--accent); border-radius:4px 4px 0 0; min-height:4px;
+           height:{{ [(d.count / (max_count or 1) * 80)|int, 4] | max }}px;"></div>
+      <span style="font-size:0.72rem; color:var(--muted)">{{ d.day }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+  <!-- Pending Approvals -->
+  <div class="table-card">
+    <div class="table-card-header">
+      ⏳ Pending Approvals
+      <a href="{{ url_for('admin_notes', status='pending') }}" class="btn btn-warning btn-sm">View All</a>
+    </div>
+    <table>
+      <thead><tr><th>Title</th><th>By</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        {% for note in recent_notes if note['status'] == 'pending' %}
+        <tr>
+          <td><strong>{{ note['title'][:30] }}…</strong></td>
+          <td>{{ note['uploader_name'] }}</td>
+          <td>{{ note['uploaded_at'] | fmt_short }}</td>
+          <td><a href="{{ url_for('admin_review_note', nid=note['id']) }}" class="btn btn-primary btn-sm">Review</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center; color:var(--muted); padding:20px">No pending notes 🎉</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Top Downloads -->
+  <div class="table-card">
+    <div class="table-card-header">🔥 Most Downloaded</div>
+    <table>
+      <thead><tr><th>Title</th><th>Downloads</th></tr></thead>
+      <tbody>
+        {% for note in top_notes %}
+        <tr>
+          <td><a href="{{ url_for('note_detail', nid=note['id']) }}" style="color:var(--accent)">{{ note['title'][:35] }}</a></td>
+          <td><strong>{{ note['downloads'] }}</strong></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2" style="text-align:center; color:var(--muted); padding:20px">No notes yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Recent Users -->
+<div class="table-card">
+  <div class="table-card-header">
+    👥 Recently Joined Students
+    <a href="{{ url_for('admin_users') }}" class="btn btn-outline btn-sm">Manage All</a>
+  </div>
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>College</th><th>Branch</th><th>Joined</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for user in recent_users %}
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="avatar-xs" style="background:{{ user['avatar_color'] }}">{{ user.initials }}</div>
+            {{ user['name'] }}
+          </div>
+        </td>
+        <td>{{ user['email'] }}</td>
+        <td>{{ user['college'] or '—' }}</td>
+        <td>{{ user['branch'] or '—' }}</td>
+        <td>{{ user['created_at'] | fmt_date }}</td>
+        <td><span class="status-badge status-{{ user['status'] }}">{{ user['status'].title() }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

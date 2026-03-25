@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Note Requests — CampusNotes{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <h1>📝 Note Requests</h1>
+      <p>Can't find what you need? Request it here, or help others by fulfilling requests.</p>
+    </div>
+    {% if is_auth %}
+    <button class="btn btn-primary" onclick="document.getElementById('requestModal').style.display='flex'">+ New Request</button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="container" style="padding: 40px 20px;">
+  <div class="requests-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px;">
+    {% for req in requests %}
+    <div class="card fade-up" style="display:flex; flex-direction:column; padding:24px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+        <span class="badge-default">{{ req.branch or 'Any Branch' }} • Sem {{ req.semester or 'Any' }}</span>
+        {% if req.status == 'open' %}
+        <span style="color:#eab308; font-size:0.8rem; font-weight:600;">⭕ OPEN</span>
+        {% else %}
+        <span style="color:var(--success); font-size:0.8rem; font-weight:600;">✓ FULFILLED</span>
+        {% endif %}
+      </div>
+      <h3 style="margin:0 0 8px 0; font-size:1.2rem;">{{ req.subject }}</h3>
+      <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px; flex-grow:1;">{{ req.description or 'No extra details provided.' }}</p>
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:16px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          {% if req.profile_picture %}
+          <img src="{{ url_for('serve_avatar', filename=req.profile_picture) }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+          {% else %}
+          <div class="avatar-xs" style="background:{{ req.avatar_color }}; width:28px; height:28px; font-size:12px;">{{ req.name | initials }}</div>
+          {% endif %}
+          <span style="font-size:0.85rem; color:var(--text-secondary);">{{ req.name.split()[0] }}</span>
+        </div>
+        
+        <div>
+          {% if req.status == 'open' and is_auth and req.user_id != current_user.id %}
+          <form action="" onsubmit="event.preventDefault(); document.getElementById('fulfillModal-{{ req.id }}').style.display='flex';" style="display:inline;">
+             <button type="submit" class="btn btn-outline" style="padding:6px 16px; font-size:0.8rem;">Fulfill</button>
+          </form>
+          {% elif req.status == 'fulfilled' %}
+          <a href="{{ url_for('note_detail', nid=req.fulfilled_by) }}" class="btn btn-outline" style="padding:6px 16px; font-size:0.8rem;">View Note</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Fulfill Modal -->
+    {% if req.status == 'open' and is_auth %}
+    <div class="modal" id="fulfillModal-{{ req.id }}" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+      <div class="modal-content" style="background:var(--card-bg); padding:30px; border-radius:12px; width:100%; max-width:400px;">
+        <h3>Fulfill Request</h3>
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px;">Provide the Note ID of the note that satisfies this request. You must upload the note first.</p>
+        <form action="{{ url_for('fulfill_request', rid=req.id) }}" method="post" style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="form-label">Note ID (from URL)</label>
+            <input type="number" name="note_id" class="form-input" required placeholder="e.g. 15">
+          </div>
+          <div style="display:flex; gap:12px; justify-content:flex-end;">
+            <button type="button" class="btn btn-outline" onclick="document.getElementById('fulfillModal-{{ req.id }}').style.display='none'">Cancel</button>
+            <button type="submit" class="btn btn-primary">Fulfill</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state" style="grid-column:1/-1;">
+      <div class="empty-icon">📝</div>
+      <div class="empty-title">No requests found</div>
+      <div class="empty-text">Everything seems to be available!</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- New Request Modal -->
+{% if is_auth %}
+<div class="modal" id="requestModal" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div class="modal-content" style="background:var(--card-bg); padding:30px; border-radius:12px; width:100%; max-width:500px;">
+    <h3 style="margin-top:0;">New Note Request</h3>
+    <form action="{{ url_for('note_requests') }}" method="post" style="display:flex; flex-direction:column; gap:16px;">
+      <div>
+        <label class="form-label">Subject</label>
+        <input type="text" name="subject" class="form-input" required placeholder="e.g. Data Structures">
+      </div>
+      <div style="display:flex; gap:16px;">
+        <div style="flex:1;">
+          <label class="form-label">Branch</label>
+          <select name="branch" class="form-select">
+            <option value="">Any</option>
+            {% for b in config['BRANCHES'] %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label class="form-label">Semester</label>
+          <select name="semester" class="form-select">
+            <option value="">Any</option>
+            {% for s in config['SEMESTERS'] %}<option value="{{ s }}">Sem {{ s }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Extra Details</label>
+        <textarea name="description" class="form-input" rows="3" placeholder="Any specific requirements..."></textarea>
+      </div>
+      <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('requestModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

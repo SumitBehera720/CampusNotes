@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Platform Features — CampusNotes{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="text-align:center; padding-top:60px; padding-bottom:60px;">
+  <div class="container">
+    <h1 style="font-size:2.5rem; margin-bottom:16px;">Everything you need to ace your exams 🚀</h1>
+    <p style="font-size:1.2rem; color:var(--text-secondary); max-width:600px; margin:0 auto;">CampusNotes is more than just a file repository. It's a social learning platform designed for ambitious students.</p>
+  </div>
+</div>
+
+<div class="container" style="padding: 60px 20px;">
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:30px;">
+    
+    <div class="card fade-up" style="padding:30px; text-align:center;">
+      <div style="font-size:48px; margin-bottom:20px;">🏆</div>
+      <h3>Contributor Leaderboard</h3>
+      <p style="color:var(--text-secondary);">Climb the ranks by uploading high-quality notes. See who's helping the community the most.</p>
+    </div>
+    
+    <div class="card fade-up" style="padding:30px; text-align:center; animation-delay:0.1s;">
+      <div style="font-size:48px; margin-bottom:20px;">📝</div>
+      <h3>Note Requests</h3>
+      <p style="color:var(--text-secondary);">Can't find a specific subject? Request it from the community. Have notes? Fulfill open requests.</p>
+    </div>
+    
+    <div class="card fade-up" style="padding:30px; text-align:center; animation-delay:0.2s;">
+      <div style="font-size:48px; margin-bottom:20px;">⚖️</div>
+      <h3>Side-by-Side Compare</h3>
+      <p style="color:var(--text-secondary);">Not sure which Data Structures note is better? Compare them side-by-side before downloading.</p>
+    </div>
+    
+    <div class="card fade-up" style="padding:30px; text-align:center; animation-delay:0.3s;">
+      <div style="font-size:48px; margin-bottom:20px;">🎖️</div>
+      <h3>Badges & Achievements</h3>
+      <p style="color:var(--text-secondary);">Earn badges for hitting upload milestones, getting high ratings, and reaching 500+ downloads.</p>
+    </div>
+    
+    <div class="card fade-up" style="padding:30px; text-align:center; animation-delay:0.4s;">
+      <div style="font-size:48px; margin-bottom:20px;">🤝</div>
+      <h3>Follow Students</h3>
+      <p style="color:var(--text-secondary);">Found a senior who takes great notes? Follow them to get notified instantly when they upload new material.</p>
+    </div>
+    
+    <div class="card fade-up" style="padding:30px; text-align:center; animation-delay:0.5s;">
+      <div style="font-size:48px; margin-bottom:20px;">✨</div>
+      <h3 style="display:flex; align-items:center; justify-content:center; gap:8px;">Verified Uploaders <span style="color:var(--accent);">✓</span></h3>
+      <p style="color:var(--text-secondary);">Trust the content you read. Top contributors are hand-verified by our admin team for quality assurance.</p>
+    </div>
+    
+  </div>
+</div>
+{% endblock %}

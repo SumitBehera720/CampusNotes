@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}CampusNotes — Share & Discover Academic Notes{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow fade-up">✦ The Student Knowledge Hub</div>
+    <h1 class="fade-up fade-up-1">Find Notes That <span>Actually</span> Help You Study</h1>
+    <p class="fade-up fade-up-2">Browse, share, and download quality academic notes from students across branches and semesters. All organized, all searchable.</p>
+
+    <form class="search-bar-hero fade-up fade-up-2" action="{{ url_for('browse') }}" method="get">
+      <input type="text" name="q" placeholder="Search by subject, topic, semester…">
+      <button type="submit">Search →</button>
+    </form>
+
+    <div class="hero-stats fade-up fade-up-3">
+      <div>
+        <div class="hero-stat-val">{{ stats.notes }}+</div>
+        <div class="hero-stat-label">Approved Notes</div>
+      </div>
+      <div>
+        <div class="hero-stat-val">{{ stats.users }}+</div>
+        <div class="hero-stat-label">Active Students</div>
+      </div>
+      <div>
+        <div class="hero-stat-val">{{ stats.downloads }}+</div>
+        <div class="hero-stat-label">Downloads</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURED -->
+{% if featured %}
+<section class="section" style="background: var(--card-bg); border-bottom: 1px solid var(--border);">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">⭐ Featured Notes</h2>
+      <a href="{{ url_for('browse') }}" class="section-link">View all →</a>
+    </div>
+    <div class="notes-grid">
+      {% for note in featured %}
+        {% include 'notes/_note_card.html' %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+<!-- RECOMMENDED -->
+{% if recommended %}
+<section class="section" style="background: var(--bg-primary);">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">🎯 Recommended for You</h2>
+      <span style="color:var(--text-secondary); font-size:0.9rem;">Based on your Branch & Semester</span>
+    </div>
+    <div class="notes-grid">
+      {% for note in recommended %}
+        {% include 'notes/_note_card.html' %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- EXAM SEASON -->
+{% if is_exam_season and exam_notes %}
+<section class="section" style="background: linear-gradient(135deg, rgba(168,85,247,0.1) 0%, rgba(236,72,153,0.1) 100%);">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title" style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.5rem;">🚨</span> Exam Season Essentials
+      </h2>
+      <span style="color:var(--text-secondary); font-size:0.9rem;">PYQs & Exam-Oriented Notes</span>
+    </div>
+    <div class="notes-grid">
+      {% for note in exam_notes %}
+        {% include 'notes/_note_card.html' %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- RECENT -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">🕐 Recently Added</h2>
+      <a href="{{ url_for('browse') }}?sort=latest" class="section-link">See more →</a>
+    </div>
+    <div class="notes-grid">
+      {% for note in recent %}
+        {% include 'notes/_note_card.html' %}
+      {% else %}
+        <div class="empty-state" style="grid-column: 1/-1">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">No notes yet</div>
+          <div class="empty-text">Be the first to upload notes!</div>
+          {% if is_auth %}
+          <a href="{{ url_for('upload') }}" class="btn btn-primary mt-4">Upload Notes</a>
+          {% else %}
+          <a href="{{ url_for('register') }}" class="btn btn-primary mt-4">Get Started</a>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- POPULAR -->
+{% if popular %}
+<section class="section" style="background: var(--card-bg); border-top: 1px solid var(--border);">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">🔥 Most Downloaded</h2>
+      <a href="{{ url_for('browse') }}?sort=downloads" class="section-link">See all →</a>
+    </div>
+    <div class="notes-grid">
+      {% for note in popular %}
+        {% include 'notes/_note_card.html' %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- WHY CAMPUSNOTES -->
+<section class="section" style="background: var(--card-bg);">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Why CampusNotes?</h2>
+    </div>
+    <div class="features-grid" style="display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:16px;">
+      <div class="feature-card" style="background:var(--bg-primary); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <h3>Fast Search</h3>
+        <p>Find exactly what you need from hundreds of verified notes, with intelligent matching and suggestions.</p>
+      </div>
+      <div class="feature-card" style="background:var(--bg-primary); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <h3>Trusted Community</h3>
+        <p>Upload once, get reviewed by admins, and share across branches for instant student collaboration.</p>
+      </div>
+      <div class="feature-card" style="background:var(--bg-primary); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <h3>Complete Coverage</h3>
+        <p>Save notes, follow downloads, and track your contributions in one dashboard.</p>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:40px;">
+      <a href="{{ url_for('features') }}" class="btn btn-outline" style="border-radius:24px; padding:12px 32px;">See All Platform Features →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+{% if not is_auth %}
+<section class="section" style="background: var(--bg-primary); text-align: center;">
+  <div class="container">
+    <h2 style="font-size: 2rem; margin-bottom: 12px; color: var(--text-primary);">Ready to share your knowledge?</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 28px;">Join thousands of students helping each other succeed.</p>
+    <a href="{{ url_for('register') }}" class="btn btn-accent btn-lg">Create Free Account →</a>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Manage Users{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-title">Manage Users</div>
+
+<form method="get" style="margin-bottom:20px; display:flex; gap:10px;">
+  <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search by name or email…" style="max-width:340px;">
+  <button type="submit" class="btn btn-primary">Search</button>
+  {% if search %}<a href="{{ url_for('admin_users') }}" class="btn btn-outline">Clear</a>{% endif %}
+</form>
+
+<div class="table-card">
+  <div class="table-card-header">Students ({{ users|length }})</div>
+  {% if users %}
+  <table>
+    <thead>
+      <tr><th>User</th><th>Email</th><th>College</th><th>Branch</th><th>Sem</th><th>Notes</th><th>Joined</th><th>Status</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="avatar-xs" style="background:{{ user['avatar_color'] }}">{{ user.initials }}</div>
+            <strong>{{ user['name'] }}</strong>
+          </div>
+        </td>
+        <td>{{ user['email'] }}</td>
+        <td>{{ user['college'] or '—' }}</td>
+        <td>{{ user['branch'] or '—' }}</td>
+        <td>{{ user.semester or '—' }}</td>
+        <td>{{ note_counts[user['id']] }}</td>
+        <td>{{ user['created_at'] | fmt_date }}</td>
+        <td><span class="status-badge status-{{ user['status'] }}">{{ user['status'].title() }}</span></td>
+        <td>
+          <div style="display:flex; gap:8px;">
+            <form method="post" action="{{ url_for('admin_toggle_user', uid=user['id']) }}" style="margin:0;">
+              <button type="submit" class="btn {{ 'btn-success' if user['status'] == 'blocked' else 'btn-danger' }} btn-sm" style="padding:4px 8px; font-size:0.75rem;">
+                {{ 'Unblock' if user['status'] == 'blocked' else 'Block' }}
+              </button>
+            </form>
+            <form method="post" action="{{ url_for('admin_toggle_verified', uid=user['id']) }}" style="margin:0;">
+              <button type="submit" class="btn {{ 'btn-outline' if user.is_verified else 'btn-primary' }} btn-sm" style="padding:4px 8px; font-size:0.75rem;">
+                {{ 'Revoke Badge' if user.is_verified else 'Verify ✓' }}
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No users found</div></div>
+  {% endif %}
+</div>
+{% endblock %}

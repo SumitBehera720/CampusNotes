@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="admin-brand">⚙️ Admin Panel</div>
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-item {{ 'active' if request.endpoint == 'admin_dashboard' }}">
+      📊 Dashboard
+    </a>
+    <a href="{{ url_for('admin_notes', status='pending') }}" class="admin-nav-item {{ 'active' if request.endpoint == 'admin_notes' }}">
+      ⏳ Pending Notes
+      {% set p = pending_count %}
+    </a>
+    <a href="{{ url_for('admin_notes', status='approved') }}" class="admin-nav-item">✅ Approved Notes</a>
+    <a href="{{ url_for('admin_notes', status='rejected') }}" class="admin-nav-item">❌ Rejected Notes</a>
+    <a href="{{ url_for('admin_users') }}" class="admin-nav-item {{ 'active' if request.endpoint == 'admin_users' }}">👥 Users</a>
+    <a href="{{ url_for('admin_reports') }}" class="admin-nav-item {{ 'active' if request.endpoint == 'admin_reports' }}">🚩 Reports</a>
+    <div style="margin-top: auto; padding: 20px;">
+      <a href="{{ url_for('index') }}" class="admin-nav-item">🌐 View Site</a>
+      <a href="{{ url_for('logout') }}" class="admin-nav-item" style="color: #fca5a5;">🚪 Logout</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="admin-main">
+    {% block admin_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

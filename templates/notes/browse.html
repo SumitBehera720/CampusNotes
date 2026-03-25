@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Browse Notes{% endblock %}
+
+{% block content %}
+<div class="container">
+  <form id="filter-form" method="get" action="{{ url_for('browse') }}">
+    <div class="browse-layout">
+
+      <!-- SIDEBAR FILTERS -->
+      <aside class="filter-panel">
+        <div class="filter-title">🔍 Filters</div>
+
+        <div class="filter-group" style="position:relative;">
+          <div class="filter-label">Search</div>
+          <input id="searchInput" type="text" name="q" value="{{ q }}" placeholder="Subject, topic, keyword…" class="filter-input" autocomplete="off">
+          <div id="suggestions" class="autocomplete-suggestions" style="display:none;"></div>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-label">Branch</div>
+          <select name="branch" class="filter-select">
+            <option value="">All Branches</option>
+            {% for b in config.BRANCHES %}
+            <option value="{{ b }}" {% if branch == b %}selected{% endif %}>{{ b }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-label">Semester</div>
+          <select name="semester" class="filter-select">
+            <option value="">All Semesters</option>
+            {% for s in config.SEMESTERS %}
+            <option value="{{ s }}" {% if semester == s %}selected{% endif %}>Semester {{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-label">Note Type</div>
+          <div class="filter-chips">
+            {% for t in config.NOTE_TYPES %}
+            <button type="button" class="filter-chip {{ 'active' if note_type == t }}"
+                    data-input="note_type" data-val="{{ t }}">{{ t }}</button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="note_type" value="{{ note_type }}">
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-label">Difficulty</div>
+          <div class="filter-chips">
+            {% for d in config.DIFFICULTY %}
+            <button type="button" class="filter-chip {{ 'active' if difficulty == d }}"
+                    data-input="difficulty" data-val="{{ d }}">{{ d }}</button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="difficulty" value="{{ difficulty }}">
+        </div>
+
+        <button type="button" class="filter-reset" onclick="window.location='{{ url_for('browse') }}'">Reset All Filters</button>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="browse-main">
+        <div class="browse-header">
+          <div>
+            <h1 style="font-size: 1.3rem; font-weight: 800; font-family: 'Syne', sans-serif;">Browse Notes</h1>
+            <div class="results-count">
+              {{ notes|length }} note{{ 's' if notes|length != 1 }} found
+              {% if q %} for "<strong>{{ q }}</strong>"{% endif %}
+            </div>
+            <small style="color: var(--muted); font-size: 0.8rem;">Only approved notes are shown here.</small>
+          </div>
+          <select name="sort" class="sort-select" form="filter-form">
+            <option value="latest" {% if sort == 'latest' %}selected{% endif %}>Latest First</option>
+            <option value="downloads" {% if sort == 'downloads' %}selected{% endif %}>Most Downloaded</option>
+            <option value="saves" {% if sort == 'saves' %}selected{% endif %}>Most Viewed</option>
+          </select>
+        </div>
+
+        {% if notes %}
+        <div class="notes-grid">
+          {% for note in notes %}
+            {% include 'notes/_note_card.html' %}
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if pages > 1 %}
+        <div class="pagination">
+          {% if page > 1 %}
+          <a href="{{ url_for('browse', page=page-1, q=q, branch=branch, semester=semester, note_type=note_type, difficulty=difficulty, sort=sort) }}" class="page-btn">←</a>
+          {% endif %}
+          {% for p in range(1, pages+1) %}
+            <a href="{{ url_for('browse', page=p, q=q, branch=branch, semester=semester, note_type=note_type, difficulty=difficulty, sort=sort) }}" class="page-btn {{ 'active' if p == page }}">{{ p }}</a>
+          {% endfor %}
+          {% if page < pages %}
+          <a href="{{ url_for('browse', page=page+1, q=q, branch=branch, semester=semester, note_type=note_type, difficulty=difficulty, sort=sort) }}" class="page-btn">→</a>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">No notes found</div>
+          <div class="empty-text">Try adjusting your filters or search term.</div>
+          {% if similar %}
+          <div style="margin-top:16px; text-align:left; max-width:480px;">
+            <div style="font-weight:700; margin-bottom:8px;">Similar results</div>
+            <div class="notes-grid">
+              {% for note in similar %}
+              {% include 'notes/_note_card.html' %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          <a href="{{ url_for('browse') }}" class="btn btn-outline mt-4">Clear Filters</a>
+        </div>
+        {% endif %}
+      </main>
+    </div>
+  </form>
+</div>
+{% endblock %}
