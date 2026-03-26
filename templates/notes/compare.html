@@ -2,112 +2,267 @@
 {% block title %}Compare Notes — CampusNotes{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-  <div class="container">
-    <h1>⚖️ Compare Notes</h1>
-    <p>Review two notes side-by-side to decide which one to download.</p>
+<div class="dashboard-header" style="background: linear-gradient(135deg, #424874 0%, #2f345c 100%); padding: 48px 20px;">
+  <div class="container" style="text-align: center;">
+    <h1 style="color: #fff; margin: 0 0 8px 0; font-size: clamp(1.6rem, 3vw, 2.2rem);">⚖️ Compare Notes</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 0.95rem;">Pick two notes and compare them side-by-side to find the best one.</p>
   </div>
 </div>
 
-<div class="container" style="padding: 40px 20px;">
-  <form action="{{ url_for('compare_notes') }}" method="get" class="card" style="padding:24px; margin-bottom:40px; display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
-    <div style="flex:1; min-width:200px;">
-      <label class="form-label">Note 1 ID</label>
-      <input type="number" name="n1" class="form-input" value="{{ request.args.get('n1','') }}" required>
+<div class="container" style="max-width: 1100px; padding: 32px 20px;">
+  <!-- Search Form -->
+  <form action="{{ url_for('compare_notes') }}" method="get" class="compare-search-form" id="compareForm">
+    <div class="compare-search-row">
+      <div class="compare-search-box">
+        <label class="compare-label">📘 Note 1</label>
+        <div style="position:relative;">
+          <input type="text" id="search1" class="form-control" placeholder="Search by title, subject, branch..." autocomplete="off" value="{% if n1 %}{{ n1.title }} · {{ n1.subject }}{% endif %}">
+          <input type="hidden" name="n1" id="n1val" value="{{ request.args.get('n1','') }}">
+          <div class="compare-suggestions" id="suggestions1"></div>
+        </div>
+      </div>
+
+      <div class="compare-vs">
+        <div class="compare-vs-circle">VS</div>
+      </div>
+
+      <div class="compare-search-box">
+        <label class="compare-label">📗 Note 2</label>
+        <div style="position:relative;">
+          <input type="text" id="search2" class="form-control" placeholder="Search by title, subject, branch..." autocomplete="off" value="{% if n2 %}{{ n2.title }} · {{ n2.subject }}{% endif %}">
+          <input type="hidden" name="n2" id="n2val" value="{{ request.args.get('n2','') }}">
+          <div class="compare-suggestions" id="suggestions2"></div>
+        </div>
+      </div>
     </div>
-    <div style="flex:1; min-width:200px;">
-      <label class="form-label">Note 2 ID</label>
-      <input type="number" name="n2" class="form-input" value="{{ request.args.get('n2','') }}" required>
+    <div style="text-align: center; margin-top: 20px;">
+      <button type="submit" class="btn btn-primary btn-lg" style="padding: 12px 40px; border-radius: 50px; font-weight: 700;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        Compare Now
+      </button>
     </div>
-    <button type="submit" class="btn btn-primary">Compare Now</button>
   </form>
 
   {% if n1 or n2 %}
-  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:30px;">
-    <!-- NOTE 1 -->
-    <div class="card" style="padding:30px;">
-      {% if n1 %}
-      <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
-        <span class="badge-{{ n1.note_type.lower() }}">{{ n1.note_type }}</span>
-        <span class="badge-default">{{ n1.difficulty }}</span>
+  <!-- Comparison Results -->
+  <div class="compare-results">
+    <div class="compare-card-grid">
+      <!-- NOTE 1 -->
+      <div class="compare-note-card {% if n1 and n2 %}{{ 'compare-winner' if n1 and n2 and n1.downloads > n2.downloads else '' }}{% endif %}">
+        {% if n1 %}
+        <div class="compare-note-header">
+          <span class="note-type-badge {% if n1.note_type=='PDF' %}badge-pdf{% elif n1.note_type=='PPT' %}badge-ppt{% elif n1.note_type=='Handwritten' %}badge-handwritten{% elif n1.note_type=='PYQs' %}badge-pyqs{% else %}badge-default{% endif %}">{{ n1.note_type }}</span>
+          <span class="badge-default" style="font-size:0.7rem;">{{ n1.difficulty }}</span>
+        </div>
+        <h2 class="compare-note-title">{{ n1.title }}</h2>
+        <div class="compare-note-subject">{{ n1.subject }} • Semester {{ n1.semester }}</div>
+        
+        <div class="compare-stats-grid">
+          <div class="compare-stat">
+            <div class="compare-stat-icon">⬇️</div>
+            <div>
+              <div class="compare-stat-value">{{ n1.downloads }}</div>
+              <div class="compare-stat-label">Downloads</div>
+            </div>
+          </div>
+          <div class="compare-stat">
+            <div class="compare-stat-icon">📁</div>
+            <div>
+              <div class="compare-stat-value">{{ n1.file_size | file_size_str }}</div>
+              <div class="compare-stat-label">File Size</div>
+            </div>
+          </div>
+          <div class="compare-stat">
+            <div class="compare-stat-icon">👁️</div>
+            <div>
+              <div class="compare-stat-value">{{ n1.views }}</div>
+              <div class="compare-stat-label">Views</div>
+            </div>
+          </div>
+          <div class="compare-stat">
+            <div class="compare-stat-icon">👤</div>
+            <div>
+              <div class="compare-stat-value" style="font-size:0.85rem;">
+                <a href="{{ url_for('public_profile', uid=n1.uploaded_by) }}" style="text-decoration:none; color:inherit;">{{ uploaders[n1.uploaded_by].name }}</a>
+              </div>
+              <div class="compare-stat-label">Uploader</div>
+            </div>
+          </div>
+        </div>
+        
+        <p class="compare-note-desc">{{ n1.description or 'No description provided.' }}</p>
+        
+        <div class="compare-note-actions">
+          <a href="{{ url_for('note_detail', nid=n1.id) }}" class="btn btn-outline" style="flex:1; justify-content:center;">View Details</a>
+          {% if is_auth %}
+          <a href="{{ url_for('download_note', nid=n1.id) }}" class="btn btn-primary" style="flex:1; justify-content:center;">Download</a>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="compare-empty">
+          <div style="font-size:3rem; margin-bottom:12px;">📘</div>
+          <div style="font-weight:600; margin-bottom:4px;">Note 1 not found</div>
+          <div style="font-size:0.85rem; color:var(--text-secondary);">Search for a note above</div>
+        </div>
+        {% endif %}
       </div>
-      <h2 style="margin:0 0 8px 0;">{{ n1.title }}</h2>
-      <div style="color:var(--text-secondary); margin-bottom:24px;">{{ n1.subject }} • Sem {{ n1.semester }}</div>
-      
-      <div style="background:var(--bg-primary); padding:16px; border-radius:12px; margin-bottom:24px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-          <span style="color:var(--text-secondary);">Downloads</span>
-          <strong style="color:var(--text-primary);">{{ n1.downloads }}</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-          <span style="color:var(--text-secondary);">Pages / Size</span>
-          <strong style="color:var(--text-primary);">{{ n1.file_size | file_size_str }}</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between;">
-          <span style="color:var(--text-secondary);">Uploader</span>
-          <strong style="color:var(--text-primary);">
-            <a href="{{ url_for('public_profile', uid=n1.uploaded_by) }}" style="text-decoration:none; color:inherit;">{{ uploaders[n1.uploaded_by].name }}</a>
-          </strong>
-        </div>
+
+      <!-- VS Divider (between cards) -->
+      <div class="compare-vs-divider">
+        <div class="compare-vs-badge">VS</div>
       </div>
-      
-      <p style="color:var(--text-secondary); line-height:1.6; margin-bottom:24px; min-height:80px;">{{ n1.description or 'No description provided.' }}</p>
-      
-      {% if is_auth %}
-      <a href="{{ url_for('download_note', nid=n1.id) }}" class="btn btn-primary" style="display:block; text-align:center;">Download {{ n1.note_type }}</a>
-      {% else %}
-      <p style="text-align:center; color:var(--text-secondary); font-size:0.9rem;">Sign in to download</p>
-      {% endif %}
-      {% else %}
-      <div class="empty-state" style="padding:60px 20px;"><div class="empty-text">Note 1 not found.</div></div>
-      {% endif %}
+
+      <!-- NOTE 2 -->
+      <div class="compare-note-card {% if n1 and n2 %}{{ 'compare-winner' if n1 and n2 and n2.downloads > n1.downloads else '' }}{% endif %}">
+        {% if n2 %}
+        <div class="compare-note-header">
+          <span class="note-type-badge {% if n2.note_type=='PDF' %}badge-pdf{% elif n2.note_type=='PPT' %}badge-ppt{% elif n2.note_type=='Handwritten' %}badge-handwritten{% elif n2.note_type=='PYQs' %}badge-pyqs{% else %}badge-default{% endif %}">{{ n2.note_type }}</span>
+          <span class="badge-default" style="font-size:0.7rem;">{{ n2.difficulty }}</span>
+        </div>
+        <h2 class="compare-note-title">{{ n2.title }}</h2>
+        <div class="compare-note-subject">{{ n2.subject }} • Semester {{ n2.semester }}</div>
+        
+        <div class="compare-stats-grid">
+          <div class="compare-stat">
+            <div class="compare-stat-icon">⬇️</div>
+            <div>
+              <div class="compare-stat-value">{{ n2.downloads }}</div>
+              <div class="compare-stat-label">Downloads</div>
+            </div>
+          </div>
+          <div class="compare-stat">
+            <div class="compare-stat-icon">📁</div>
+            <div>
+              <div class="compare-stat-value">{{ n2.file_size | file_size_str }}</div>
+              <div class="compare-stat-label">File Size</div>
+            </div>
+          </div>
+          <div class="compare-stat">
+            <div class="compare-stat-icon">👁️</div>
+            <div>
+              <div class="compare-stat-value">{{ n2.views }}</div>
+              <div class="compare-stat-label">Views</div>
+            </div>
+          </div>
+          <div class="compare-stat">
+            <div class="compare-stat-icon">👤</div>
+            <div>
+              <div class="compare-stat-value" style="font-size:0.85rem;">
+                <a href="{{ url_for('public_profile', uid=n2.uploaded_by) }}" style="text-decoration:none; color:inherit;">{{ uploaders[n2.uploaded_by].name }}</a>
+              </div>
+              <div class="compare-stat-label">Uploader</div>
+            </div>
+          </div>
+        </div>
+        
+        <p class="compare-note-desc">{{ n2.description or 'No description provided.' }}</p>
+        
+        <div class="compare-note-actions">
+          <a href="{{ url_for('note_detail', nid=n2.id) }}" class="btn btn-outline" style="flex:1; justify-content:center;">View Details</a>
+          {% if is_auth %}
+          <a href="{{ url_for('download_note', nid=n2.id) }}" class="btn btn-primary" style="flex:1; justify-content:center;">Download</a>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="compare-empty">
+          <div style="font-size:3rem; margin-bottom:12px;">📗</div>
+          <div style="font-weight:600; margin-bottom:4px;">Note 2 not found</div>
+          <div style="font-size:0.85rem; color:var(--text-secondary);">Search for a note above</div>
+        </div>
+        {% endif %}
+      </div>
     </div>
 
-    <!-- NOTE 2 -->
-    <div class="card" style="padding:30px;">
-      {% if n2 %}
-      <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
-        <span class="badge-{{ n2.note_type.lower() }}">{{ n2.note_type }}</span>
-        <span class="badge-default">{{ n2.difficulty }}</span>
+    <!-- Comparison Summary Bar -->
+    {% if n1 and n2 %}
+    <div class="compare-summary">
+      <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; text-align: center;">📊 Quick Comparison</h3>
+      <div class="compare-summary-grid">
+        <div class="compare-summary-row">
+          <span class="compare-summary-label">Downloads</span>
+          <div class="compare-bar-container">
+            {% set max_dl = [n1.downloads, n2.downloads] | max %}
+            <div class="compare-bar-left" style="width: {{ (n1.downloads / max_dl * 100) if max_dl > 0 else 50 }}%;">
+              <span>{{ n1.downloads }}</span>
+            </div>
+            <div class="compare-bar-right" style="width: {{ (n2.downloads / max_dl * 100) if max_dl > 0 else 50 }}%;">
+              <span>{{ n2.downloads }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="compare-summary-row">
+          <span class="compare-summary-label">Views</span>
+          <div class="compare-bar-container">
+            {% set max_views = [n1.views, n2.views] | max %}
+            <div class="compare-bar-left" style="width: {{ (n1.views / max_views * 100) if max_views > 0 else 50 }}%;">
+              <span>{{ n1.views }}</span>
+            </div>
+            <div class="compare-bar-right" style="width: {{ (n2.views / max_views * 100) if max_views > 0 else 50 }}%;">
+              <span>{{ n2.views }}</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <h2 style="margin:0 0 8px 0;">{{ n2.title }}</h2>
-      <div style="color:var(--text-secondary); margin-bottom:24px;">{{ n2.subject }} • Sem {{ n2.semester }}</div>
-      
-      <div style="background:var(--bg-primary); padding:16px; border-radius:12px; margin-bottom:24px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-          <span style="color:var(--text-secondary);">Downloads</span>
-          <strong style="color:var(--text-primary);">{{ n2.downloads }}</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-          <span style="color:var(--text-secondary);">Pages / Size</span>
-          <strong style="color:var(--text-primary);">{{ n2.file_size | file_size_str }}</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between;">
-          <span style="color:var(--text-secondary);">Uploader</span>
-          <strong style="color:var(--text-primary);">
-            <a href="{{ url_for('public_profile', uid=n2.uploaded_by) }}" style="text-decoration:none; color:inherit;">{{ uploaders[n2.uploaded_by].name }}</a>
-          </strong>
-        </div>
-      </div>
-      
-      <p style="color:var(--text-secondary); line-height:1.6; margin-bottom:24px; min-height:80px;">{{ n2.description or 'No description provided.' }}</p>
-      
-      {% if is_auth %}
-      <a href="{{ url_for('download_note', nid=n2.id) }}" class="btn btn-primary" style="display:block; text-align:center;">Download {{ n2.note_type }}</a>
-      {% else %}
-      <p style="text-align:center; color:var(--text-secondary); font-size:0.9rem;">Sign in to download</p>
-      {% endif %}
-      {% else %}
-      <div class="empty-state" style="padding:60px 20px;"><div class="empty-text">Note 2 not found.</div></div>
-      {% endif %}
     </div>
+    {% endif %}
   </div>
   {% else %}
-  <div class="empty-state" style="margin-top:40px;">
-    <div class="empty-icon">⚖️</div>
-    <div class="empty-title">Select Notes to Compare</div>
-    <div class="empty-text">Enter the IDs of two notes above (you can find IDs in the URL of note details pages).</div>
+  <div class="compare-empty-state">
+    <div style="font-size: 4rem; margin-bottom: 16px;">⚖️</div>
+    <h2 style="margin: 0 0 8px 0; font-size: 1.3rem;">Select Notes to Compare</h2>
+    <p style="color: var(--text-secondary); font-size: 0.95rem; max-width: 400px; margin: 0 auto;">
+      Search for two notes using the fields above. You can also start a comparison from any note's detail page.
+    </p>
   </div>
   {% endif %}
 </div>
+
+<script>
+// Autocomplete for compare search
+function setupCompareSearch(inputId, suggestionsId, hiddenId) {
+  const input = document.getElementById(inputId);
+  const suggestions = document.getElementById(suggestionsId);
+  const hidden = document.getElementById(hiddenId);
+  let debounceTimer;
+  
+  input.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { suggestions.style.display = 'none'; return; }
+    
+    debounceTimer = setTimeout(function() {
+      fetch('/autocomplete?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(data => {
+          if (!data.length) { suggestions.style.display = 'none'; return; }
+          suggestions.innerHTML = data.map(function(item) {
+            return '<div class="compare-suggestion-item" data-id="' + item.id + '" data-text="' + item.text.replace(/"/g, '&quot;') + '">' + item.text + '</div>';
+          }).join('');
+          suggestions.style.display = 'block';
+          
+          suggestions.querySelectorAll('.compare-suggestion-item').forEach(function(el) {
+            el.addEventListener('click', function() {
+              hidden.value = this.dataset.id;
+              input.value = this.dataset.text;
+              suggestions.style.display = 'none';
+            });
+          });
+        });
+    }, 250);
+  });
+  
+  input.addEventListener('focus', function() {
+    if (suggestions.children.length > 0) suggestions.style.display = 'block';
+  });
+  
+  document.addEventListener('click', function(e) {
+    if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+      suggestions.style.display = 'none';
+    }
+  });
+}
+
+setupCompareSearch('search1', 'suggestions1', 'n1val');
+setupCompareSearch('search2', 'suggestions2', 'n2val');
+</script>
 {% endblock %}

@@ -8,7 +8,7 @@
 
       <!-- ========== VIEW MODE ========== -->
       <div id="profileViewMode">
-        <div style="display:flex; align-items:center; gap:20px; margin-bottom:28px;">
+        <div style="display:flex; align-items:center; gap:20px; margin-bottom:28px; flex-wrap: wrap;">
           <div class="profile-avatar-container" style="position: relative; width: 80px; height: 80px; flex-shrink: 0;">
             {% if current_user['profile_picture'] %}
             <img src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}" 
@@ -18,10 +18,18 @@
             <div class="user-avatar-lg" style="background:{{ current_user['avatar_color'] }}; width:80px; height:80px; font-size:1.6rem; border: 3px solid var(--primary);">{{ user_initials }}</div>
             {% endif %}
           </div>
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="flex: 1; min-width: 200px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
               <div>
-                <h1 style="margin: 0; font-size: 1.5rem; font-weight: 800; font-family: 'Syne', sans-serif;">{{ current_user['name'] }}</h1>
+                <h1 style="margin: 0; font-size: 1.5rem; font-weight: 800; font-family: 'Syne', sans-serif; display: flex; align-items: center; gap: 8px;">
+                  {{ current_user['name'] }}
+                  {% if current_user['is_verified'] %}
+                  <span title="Verified Contributor" style="display:inline-flex; align-items:center; gap:4px; background:linear-gradient(135deg, #3B82F6, #1D4ED8); color:#fff; font-size:0.7rem; padding:3px 10px; border-radius:20px; font-weight:600; font-family:'DM Sans',sans-serif;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    Verified
+                  </span>
+                  {% endif %}
+                </h1>
                 <div style="color:var(--muted); font-size:0.85rem; margin-top: 4px;">{{ current_user['email'] }}</div>
               </div>
               <button type="button" onclick="toggleProfileEdit(true)" class="btn btn-primary btn-sm" style="white-space: nowrap;">
@@ -55,6 +63,21 @@
         <div class="profile-info-item" style="margin-top: 16px;">
           <div class="profile-info-label">Bio</div>
           <div class="profile-info-value">{{ current_user['bio'] }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Badges Section -->
+        {% if badges %}
+        <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; margin-bottom: 12px;">🏆 Earned Badges</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            {% for b in badges %}
+            <div title="{{ badge_types[b].desc }}" style="display:flex; align-items:center; gap:6px; background:var(--bg-primary); padding:8px 14px; border-radius:10px; border:1px solid var(--border);">
+              <span style="font-size:1.2rem;">{{ badge_types[b].icon }}</span>
+              <span style="font-size:0.8rem; font-weight:600; color:var(--text-primary);">{{ badge_types[b].name }}</span>
+            </div>
+            {% endfor %}
+          </div>
         </div>
         {% endif %}
       </div>

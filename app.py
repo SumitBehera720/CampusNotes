@@ -14,12 +14,12 @@ ALLOWED_EXT = {'pdf','doc','docx','ppt','pptx','png','jpg','jpeg'}
 ALLOWED_AVATAR_EXT = {'png','jpg','jpeg','gif','webp'}
 
 BADGE_TYPES = {
-    'first_upload': {'name': 'First Upload', 'icon': '🚀', 'desc': 'Uploaded your first note'},
+    'first_upload': {'name': 'First Note', 'icon': '📝', 'desc': 'Uploaded your first note'},
     '10_uploads': {'name': '10 Notes', 'icon': '📚', 'desc': 'Uploaded 10 notes'},
-    '100_downloads': {'name': '100 Downloads', 'icon': '🔥', 'desc': 'Notes downloaded 100 times'},
-    '500_downloads': {'name': '500 Downloads', 'icon': '⚡', 'desc': 'Notes downloaded 500 times'},
+    '100_downloads': {'name': '100 Downloads', 'icon': '💯', 'desc': 'Notes downloaded 100 times'},
+    '500_downloads': {'name': '500 Downloads', 'icon': '🏅', 'desc': 'Notes downloaded 500 times'},
     'top_rated': {'name': 'Top Rated', 'icon': '⭐', 'desc': 'Average rating above 4.5'},
-    'verified': {'name': 'Verified', 'icon': '✓', 'desc': 'Verified contributor'},
+    'verified': {'name': 'Verified', 'icon': '✅', 'desc': 'Verified contributor'},
 }
 EXAM_MONTHS = {4, 5, 11, 12}  # Apr, May, Nov, Dec
 BRANCHES = ['CSE','IT','ECE','Civil','Mechanical','EEE','Chemical','BCA','BBA','BSC-Biotech','BSC-Nursing','ANM','GNM','DIPLOMA','PGDM','MBA','MCA','Other']
@@ -331,19 +331,29 @@ def autocomplete():
     if not q: return jsonify([])
     words=[w for w in q.split() if w]
     if not words: return jsonify([])
-    where=["status='approved'"]
+    where=["n.status='approved'"]
     params=[]
     search_clauses=[]
     for w in words:
-        criterion="(title LIKE ? OR subject LIKE ? OR tags LIKE ? OR description LIKE ? OR college LIKE ? OR branch LIKE ? OR note_type LIKE ?)"
+        criterion="(n.title LIKE ? OR n.subject LIKE ? OR n.tags LIKE ? OR n.description LIKE ? OR n.college LIKE ? OR n.branch LIKE ? OR n.note_type LIKE ?)"
         search_clauses.append(criterion)
         like=f'%{w}%'
         params.extend([like]*7)
-    where.append(' OR '.join(search_clauses))
-    notes=get_db().execute(f"SELECT id,title,subject,branch,semester,note_type FROM notes WHERE {' AND '.join(where)} ORDER BY downloads DESC LIMIT 10", params).fetchall()
+    where.append(f"({' OR '.join(search_clauses)})")
+    
+    query = f"""
+        SELECT n.id, n.title, n.subject, n.branch, n.semester, n.note_type, u.name as uploader_name 
+        FROM notes n 
+        LEFT JOIN users u ON n.uploaded_by = u.id 
+        WHERE {' AND '.join(where)} 
+        ORDER BY n.downloads DESC LIMIT 10
+    """
+    notes=get_db().execute(query, params).fetchall()
+    
     payload=[]
     for n in notes:
-        payload.append({'id':n['id'],'text':f"{n['title']} · {n['subject']} · {n['branch']} · Sem {n['semester']}"})
+        uploader = f" · by {n['uploader_name']}" if n['uploader_name'] else ""
+        payload.append({'id':n['id'],'text':f"{n['title']} · {n['subject']} · {n['branch']} · Sem {n['semester']}{uploader}"})
     return jsonify(payload)
 
 # ─── DETAIL ─────────────────────────────────────────────────────────
@@ -531,6 +541,50 @@ def login():
         return redirect(nxt or (url_for('admin_dashboard') if u['role']=='admin' else url_for('index')))
     return render_template('auth/login.html')
 
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        db = get_db()
+        u = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        if not u:
+            flash('This email is not registered with CampusNotes.', 'error')
+            return redirect(url_for('forgot_password'))
+        # Store email in session to verify next step
+        session['reset_email'] = email
+        flash('Email verified! Please reset your password.', 'success')
+        return redirect(url_for('reset_password'))
+    return render_template('auth/forgot_password.html')
+
+@app.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    if 'reset_email' not in session:
+        flash('Session expired or invalid request. Please enter your email again.', 'error')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        email = session['reset_email']
+        new_password = request.form.get('password')
+        confirm_password = request.form.get('confirm')
+        
+        if len(new_password) < 6:
+            flash('Password must be at least 6 characters.', 'error')
+            return redirect(url_for('reset_password'))
+        if new_password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return redirect(url_for('reset_password'))
+            
+        db = get_db()
+        db.execute("UPDATE users SET password_hash=? WHERE email=?", (hp(new_password), email))
+        db.commit()
+        
+        # Clear the reset_email from session
+        session.pop('reset_email', None)
+        flash('Password reset successfully! You can now log in.', 'success')
+        return redirect(url_for('login'))
+        
+    return render_template('auth/reset_password.html')
+
 @app.route('/logout')
 def logout():
     session.clear(); flash('Logged out.','info'); return redirect(url_for('login'))
@@ -586,9 +640,10 @@ def delete_my_note(nid):
 def profile():
     u=cur_user()
     if u['role']=='admin':
-        return render_template('student/profile.html')
+        flash('Admin accounts do not have a profile page.','info')
+        return redirect(url_for('admin_dashboard'))
+    db=get_db()
     if request.method=='POST':
-        db=get_db()
         name=request.form.get('name',u['name']).strip()
         college=request.form.get('college','').strip()
         branch=request.form.get('branch','')
@@ -612,7 +667,8 @@ def profile():
         db.execute("UPDATE users SET name=?,college=?,branch=?,semester=?,bio=? WHERE id=?",
                    (name,college,branch,int(semester) if semester else None,bio,u['id']))
         db.commit(); flash('Profile updated!','success'); return redirect(url_for('profile'))
-    return render_template('student/profile.html')
+    badges=[b['badge_type'] for b in db.execute("SELECT badge_type FROM badges WHERE user_id=?",(u['id'],)).fetchall()]
+    return render_template('student/profile.html', badges=badges)
 
 @app.route('/avatar/<filename>')
 def serve_avatar(filename):
@@ -660,9 +716,12 @@ def leaderboard():
     # Score: Downloads + Saves (views as approximation of saves in simple queries)
     top_users=db.execute("""
         SELECT u.*, 
-               (SELECT COUNT(*) FROM notes WHERE uploaded_by=u.id AND status='approved') as uploads,
-               (SELECT COALESCE(SUM(downloads),0) FROM notes WHERE uploaded_by=u.id) as total_dl
-        FROM users u WHERE u.role='student'
+               COUNT(n.id) as uploads,
+               COALESCE(SUM(n.downloads),0) as total_dl
+        FROM users u 
+        JOIN notes n ON u.id = n.uploaded_by AND n.status='approved'
+        WHERE u.role='student'
+        GROUP BY u.id
         ORDER BY total_dl DESC, uploads DESC LIMIT 50
     """).fetchall()
     user_badges={u['id']:[b['badge_type'] for b in db.execute("SELECT badge_type FROM badges WHERE user_id=?",(u['id'],)).fetchall()] for u in top_users}
@@ -696,6 +755,18 @@ def fulfill_request(rid):
     db.execute("INSERT INTO notifications(user_id,message,type,link) VALUES(?,?,?,?)",
                (req['user_id'],f"{cu['name']} fulfilled your request for '{req['subject']}'!","success",url_for('note_detail',nid=nid)))
     db.commit(); flash('Request fulfilled!','success')
+    return redirect(url_for('note_requests'))
+
+@app.route('/requests/<int:rid>/delete',methods=['POST'])
+@login_req
+def delete_request(rid):
+    db=get_db(); cu=cur_user()
+    req=db.execute("SELECT * FROM note_requests WHERE id=?",(rid,)).fetchone()
+    if not req: abort(404)
+    if req['user_id'] != cu['id'] and cu['role'] != 'admin': abort(403)
+    db.execute("DELETE FROM note_requests WHERE id=?",(rid,))
+    db.commit()
+    flash('Request deleted!','success')
     return redirect(url_for('note_requests'))
 
 # ─── TOOLS ──────────────────────────────────────────────────────────
@@ -793,7 +864,7 @@ def admin_toggle_user(uid):
 def admin_toggle_verified(uid):
     db=get_db(); u=db.execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone()
     if not u: abort(404)
-    nv = 0 if u.get('is_verified') else 1
+    nv = 0 if u['is_verified'] else 1
     db.execute("UPDATE users SET is_verified=? WHERE id=?",(nv,uid))
     if nv:
         db.execute("INSERT OR IGNORE INTO badges(user_id,badge_type) VALUES(?,'verified')",(uid,))

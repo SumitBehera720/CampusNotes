@@ -19,52 +19,76 @@
     {% for req in requests %}
     <div class="card fade-up" style="display:flex; flex-direction:column; padding:24px;">
       <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-        <span class="badge-default">{{ req.branch or 'Any Branch' }} • Sem {{ req.semester or 'Any' }}</span>
-        {% if req.status == 'open' %}
+        <span class="badge-default">{{ req['branch'] or 'Any Branch' }} • Sem {{ req['semester'] or 'Any' }}</span>
+        {% if req['status'] == 'open' %}
         <span style="color:#eab308; font-size:0.8rem; font-weight:600;">⭕ OPEN</span>
         {% else %}
         <span style="color:var(--success); font-size:0.8rem; font-weight:600;">✓ FULFILLED</span>
         {% endif %}
       </div>
-      <h3 style="margin:0 0 8px 0; font-size:1.2rem;">{{ req.subject }}</h3>
-      <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px; flex-grow:1;">{{ req.description or 'No extra details provided.' }}</p>
+      <h3 style="margin:0 0 8px 0; font-size:1.2rem;">{{ req['subject'] }}</h3>
+      <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px; flex-grow:1;">{{ req['description'] or 'No extra details provided.' }}</p>
       
       <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:16px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          {% if req.profile_picture %}
-          <img src="{{ url_for('serve_avatar', filename=req.profile_picture) }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+          {% if req['profile_picture'] %}
+          <img src="{{ url_for('serve_avatar', filename=req['profile_picture']) }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
           {% else %}
-          <div class="avatar-xs" style="background:{{ req.avatar_color }}; width:28px; height:28px; font-size:12px;">{{ req.name | initials }}</div>
+          <div class="avatar-xs" style="--avatar-bg: {{ req['avatar_color'] }}; background-color: var(--avatar-bg); width:28px; height:28px; font-size:12px;">{{ req['name'] | initials }}</div>
           {% endif %}
-          <span style="font-size:0.85rem; color:var(--text-secondary);">{{ req.name.split()[0] }}</span>
+          <span style="font-size:0.85rem; color:var(--text-secondary);">{{ req['name'].split()[0] }}</span>
         </div>
         
-        <div>
-          {% if req.status == 'open' and is_auth and req.user_id != current_user.id %}
+        <div style="display:flex; gap:8px; align-items:center;">
+          {% if is_auth and (req['user_id'] == current_user['id'] or is_admin) %}
+          <button type="button" 
+                  data-rid="{{ req['id'] }}" 
+                  data-url="{{ url_for('delete_request', rid=req['id']) }}"
+                  onclick="confirmDelete(this.dataset.rid, this.dataset.url)"
+                  style="background:rgba(239, 68, 68, 0.1); color:var(--danger); border:none; padding:6px 12px; font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:6px; justify-content:center; border-radius:8px; cursor:pointer; transition:all 0.2s ease;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'" title="Delete Request">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+             Delete
+          </button>
+          {% endif %}
+          
+          {% if req['status'] == 'open' and is_auth and req['user_id'] != current_user['id'] %}
           <form action="" onsubmit="event.preventDefault(); document.getElementById('fulfillModal-{{ req.id }}').style.display='flex';" style="display:inline;">
-             <button type="submit" class="btn btn-outline" style="padding:6px 16px; font-size:0.8rem;">Fulfill</button>
+             <button type="submit" class="btn btn-primary" style="padding:6px 16px; font-size:0.8rem;">Fulfill</button>
           </form>
-          {% elif req.status == 'fulfilled' %}
-          <a href="{{ url_for('note_detail', nid=req.fulfilled_by) }}" class="btn btn-outline" style="padding:6px 16px; font-size:0.8rem;">View Note</a>
+          {% elif req['status'] == 'fulfilled' %}
+          <a href="{{ url_for('note_detail', nid=req['fulfilled_by']) }}" class="btn btn-outline" style="padding:6px 16px; font-size:0.8rem;">View Note</a>
           {% endif %}
         </div>
       </div>
     </div>
 
     <!-- Fulfill Modal -->
-    {% if req.status == 'open' and is_auth %}
-    <div class="modal" id="fulfillModal-{{ req.id }}" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
-      <div class="modal-content" style="background:var(--card-bg); padding:30px; border-radius:12px; width:100%; max-width:400px;">
-        <h3>Fulfill Request</h3>
-        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:20px;">Provide the Note ID of the note that satisfies this request. You must upload the note first.</p>
-        <form action="{{ url_for('fulfill_request', rid=req.id) }}" method="post" style="display:flex; flex-direction:column; gap:16px;">
-          <div>
-            <label class="form-label">Note ID (from URL)</label>
-            <input type="number" name="note_id" class="form-input" required placeholder="e.g. 15">
+    {% if req['status'] == 'open' and is_auth %}
+    <div class="modal" id="fulfillModal-{{ req['id'] }}" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding: 20px;">
+      <div class="modal-content" style="background:var(--card-bg); padding:32px; border-radius:16px; width:100%; max-width:480px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="margin:0; font-size:1.4rem;">Fulfill Request</h3>
+          <button type="button" onclick="document.getElementById('fulfillModal-{{ req.id }}').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-secondary);">&times;</button>
+        </div>
+        <p style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:24px; line-height:1.5;">Search for the note you uploaded to fulfill this request. You must upload the note to the platform first.</p>
+        
+        <form action="{{ url_for('fulfill_request', rid=req['id']) }}" method="post" style="display:flex; flex-direction:column; gap:20px;">
+          <div style="position: relative;">
+            <label class="form-label" style="font-weight:600; margin-bottom:8px; display:block;">Search Your Note</label>
+            <input type="text" class="form-input fulfill-search-input" data-req-id="{{ req['id'] }}" placeholder="Type title, subject, or branch..." autocomplete="off">
+            <input type="hidden" name="note_id" id="fulfill_hidden_{{ req['id'] }}" required>
+            <div id="fulfill_suggestions_{{ req['id'] }}" class="autocomplete-suggestions" style="display:none; position:absolute; top:100%; left:0; width:100%; z-index:100; max-height:200px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.15);"></div>
           </div>
-          <div style="display:flex; gap:12px; justify-content:flex-end;">
-            <button type="button" class="btn btn-outline" onclick="document.getElementById('fulfillModal-{{ req.id }}').style.display='none'">Cancel</button>
-            <button type="submit" class="btn btn-primary">Fulfill</button>
+          
+          <div style="background:#f8f9ff; border:1px solid #e0e7ff; padding:16px; border-radius:8px; display:none;" id="fulfill_preview_{{ req['id'] }}">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--primary); text-transform:uppercase; margin-bottom:4px;">Selected Note:</div>
+            <div id="fulfill_preview_text_{{ req['id'] }}" style="font-weight:600; color:var(--text-primary); margin-bottom:4px;"></div>
+            <div id="fulfill_preview_sub_{{ req['id'] }}" style="font-size:0.85rem; color:var(--text-secondary);"></div>
+          </div>
+          
+          <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:8px;">
+            <button type="button" class="btn btn-outline" onclick="document.getElementById('fulfillModal-{{ req.id }}').style.display='none'" style="padding:10px 20px;">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="padding:10px 24px;" id="fulfill_submit_{{ req['id'] }}" disabled>Fulfill Request</button>
           </div>
         </form>
       </div>
@@ -83,40 +107,146 @@
 
 <!-- New Request Modal -->
 {% if is_auth %}
-<div class="modal" id="requestModal" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
-  <div class="modal-content" style="background:var(--card-bg); padding:30px; border-radius:12px; width:100%; max-width:500px;">
-    <h3 style="margin-top:0;">New Note Request</h3>
-    <form action="{{ url_for('note_requests') }}" method="post" style="display:flex; flex-direction:column; gap:16px;">
+<div class="modal" id="requestModal" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding: 20px;">
+  <div class="modal-content" style="background:var(--card-bg); padding:32px; border-radius:16px; width:100%; max-width:540px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3 style="margin:0; font-size:1.5rem;">Create a Request</h3>
+      <button type="button" onclick="document.getElementById('requestModal').style.display='none'" style="background:none; border:none; font-size:1.6rem; cursor:pointer; color:var(--text-secondary);">&times;</button>
+    </div>
+    
+    <form action="{{ url_for('note_requests') }}" method="post" style="display:flex; flex-direction:column; gap:20px;">
       <div>
-        <label class="form-label">Subject</label>
-        <input type="text" name="subject" class="form-input" required placeholder="e.g. Data Structures">
+        <label class="form-label" style="font-weight:600; margin-bottom:8px; display:block;">Subject Focus <span style="color:var(--danger);">*</span></label>
+        <input type="text" name="subject" class="form-input" required placeholder="e.g. Data Structures & Algorithms">
       </div>
+      
       <div style="display:flex; gap:16px;">
         <div style="flex:1;">
-          <label class="form-label">Branch</label>
+          <label class="form-label" style="font-weight:600; margin-bottom:8px; display:block;">Branch (Optional)</label>
           <select name="branch" class="form-select">
-            <option value="">Any</option>
+            <option value="">Any Branch</option>
             {% for b in config['BRANCHES'] %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
           </select>
         </div>
         <div style="flex:1;">
-          <label class="form-label">Semester</label>
+          <label class="form-label" style="font-weight:600; margin-bottom:8px; display:block;">Semester (Optional)</label>
           <select name="semester" class="form-select">
-            <option value="">Any</option>
+            <option value="">Any Sem</option>
             {% for s in config['SEMESTERS'] %}<option value="{{ s }}">Sem {{ s }}</option>{% endfor %}
           </select>
         </div>
       </div>
+      
       <div>
-        <label class="form-label">Extra Details</label>
-        <textarea name="description" class="form-input" rows="3" placeholder="Any specific requirements..."></textarea>
+        <label class="form-label" style="font-weight:600; margin-bottom:8px; display:block;">Extra Details (Optional)</label>
+        <textarea name="description" class="form-input" rows="3" placeholder="Provide any specific topics, textbook references, or requirements..."></textarea>
       </div>
+      
       <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
-        <button type="button" class="btn btn-outline" onclick="document.getElementById('requestModal').style.display='none'">Cancel</button>
-        <button type="submit" class="btn btn-primary">Submit Request</button>
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('requestModal').style.display='none'" style="padding:10px 20px;">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="padding:10px 24px;">Submit Request</button>
       </div>
     </form>
   </div>
 </div>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInputs = document.querySelectorAll('.fulfill-search-input');
+  
+  searchInputs.forEach(input => {
+    const reqId = input.dataset.reqId;
+    const suggBox = document.getElementById(`fulfill_suggestions_${reqId}`);
+    const hiddenInput = document.getElementById(`fulfill_hidden_${reqId}`);
+    const previewBox = document.getElementById(`fulfill_preview_${reqId}`);
+    const previewText = document.getElementById(`fulfill_preview_text_${reqId}`);
+    const previewSub = document.getElementById(`fulfill_preview_sub_${reqId}`);
+    const submitBtn = document.getElementById(`fulfill_submit_${reqId}`);
+    
+    let timeout = null;
+    
+    input.addEventListener('input', (e) => {
+      clearTimeout(timeout);
+      const q = e.target.value.trim();
+      
+      // Clear selection if input changes
+      hiddenInput.value = '';
+      submitBtn.disabled = true;
+      previewBox.style.display = 'none';
+      
+      if(q.length < 2) {
+        suggBox.style.display = 'none';
+        return;
+      }
+      
+      timeout = setTimeout(() => {
+        fetch(`/autocomplete?q=${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(data => {
+            suggBox.innerHTML = '';
+            if(data.length === 0) {
+              suggBox.innerHTML = '<div style="padding:12px; color:var(--text-secondary); font-size:0.9rem;">No notes found. Make sure you upload it first!</div>';
+              suggBox.style.display = 'block';
+              return;
+            }
+            
+            data.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'suggestion-item';
+              div.style.padding = '12px 16px';
+              div.style.cursor = 'pointer';
+              div.style.borderBottom = '1px solid var(--border)';
+              
+              const parts = item.text.split(' · ');
+              const title = parts[0];
+              const meta = parts.slice(1).join(' • ');
+              
+              div.innerHTML = `
+                <div style="font-weight:600; color:var(--text-primary); margin-bottom:4px;">${title}</div>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">${meta}</div>
+              `;
+              
+              div.addEventListener('click', () => {
+                input.value = title;
+                hiddenInput.value = item.id;
+                
+                // Show preview
+                previewText.textContent = title;
+                previewSub.textContent = meta;
+                previewBox.style.display = 'block';
+                
+                // Enable submit
+                submitBtn.disabled = false;
+                
+                // Hide suggestions
+                suggBox.style.display = 'none';
+              });
+              
+              suggBox.appendChild(div);
+            });
+            suggBox.style.display = 'block';
+          });
+      }, 300);
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+      if(!input.contains(e.target) && !suggBox.contains(e.target)) {
+        suggBox.style.display = 'none';
+      }
+    });
+  });
+});
+
+function confirmDelete(rid, url) {
+    if(confirm('Are you sure you want to delete this request?')) {
+        const f = document.createElement('form');
+        f.method = 'POST';
+        f.action = url;
+        document.body.appendChild(f);
+        f.submit();
+    }
+}
+</script>
 {% endblock %}

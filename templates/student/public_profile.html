@@ -11,9 +11,14 @@
     {% endif %}
     
     <div style="flex:1;">
-      <h1 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
+      <h1 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
         {{ user.name }}
-        {% if user.is_verified %}<span title="Verified Contributor" style="color:var(--accent); font-size:24px;">✓</span>{% endif %}
+        {% if user.is_verified %}
+        <span title="Verified Contributor" style="display:inline-flex; align-items:center; gap:4px; background:linear-gradient(135deg, #3B82F6, #1D4ED8); color:#fff; font-size:0.7rem; padding:3px 10px; border-radius:20px; font-weight:600; font-family:'DM Sans',sans-serif;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Verified
+        </span>
+        {% endif %}
       </h1>
       
       <div style="color:var(--text-secondary); margin-bottom:16px;">

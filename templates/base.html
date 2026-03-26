@@ -13,6 +13,11 @@
     <link rel="icon"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23050505' stroke='%23FFFFFF' stroke-width='4'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-family='Syne, sans-serif' font-size='28' fill='%23FFFFFF' font-weight='800'%3ECN%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% if is_auth %}
+    <style>
+        :root { --user-avatar-color: {{ current_user['avatar_color'] or '#4f46e5' }}; }
+    </style>
+    {% endif %}
     {% block extra_css %}{% endblock %}
 </head>
 
@@ -81,21 +86,25 @@
                 <!-- User Menu -->
                 <div class="user-menu-wrapper">
                     {% if current_user['profile_picture'] %}
-                    <button class="user-avatar" onclick="toggleUserMenu()" style="padding:0; overflow:hidden; border:none;">
-                        <img src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}" alt="{{ user_initials }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+                    <button class="user-avatar" onclick="toggleUserMenu()"
+                        style="padding:0; overflow:hidden; border:none;">
+                        <img src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}"
+                            alt="{{ user_initials }}"
+                            style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
                     </button>
                     {% else %}
-                    <button class="user-avatar" onclick="toggleUserMenu()"
-                        {{ 'style="background:' ~ current_user['avatar_color'] ~ ';"' | safe }}>
+                    <button class="user-avatar" onclick="toggleUserMenu()" style="background-color: var(--user-avatar-color);">
                         {{ user_initials }}
                     </button>
                     {% endif %}
                     <div class="user-dropdown" id="userDropdown">
                         <div class="user-info">
                             {% if current_user['profile_picture'] %}
-                            <img src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}" alt="{{ user_initials }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                            <img src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}"
+                                alt="{{ user_initials }}"
+                                style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">
                             {% else %}
-                            <div class="user-avatar-lg" {{ 'style="background:' ~ current_user['avatar_color'] ~ ';"' | safe }}></div>
+                            <div class="user-avatar-lg" style="background-color: var(--user-avatar-color);"></div>
                             {% endif %}
                             <div>
                                 <strong>{{ current_user['name'] }}</strong>
@@ -108,7 +117,6 @@
                         <a href="{{ url_for('saved_notes_page') }}" class="dd-item">🔖 Saved Notes</a>
                         {% else %}
                         <a href="{{ url_for('admin_dashboard') }}" class="dd-item">⚙️ Admin Panel</a>
-                        <a href="{{ url_for('profile') }}" class="dd-item">👤 Profile</a>
                         <a href="{{ url_for('saved_notes_page') }}" class="dd-item">🔖 Saved Notes</a>
                         {% endif %}
                         <hr class="dd-divider">
@@ -126,19 +134,24 @@
 
         <!-- Mobile Menu -->
         <div class="mobile-menu" id="mobileMenu">
-            <a href="{{ url_for('browse') }}">Browse Notes</a>
+            <a href="{{ url_for('index') }}">🏠 Home</a>
+            <a href="{{ url_for('browse') }}">📚 Browse Notes</a>
+            <a href="{{ url_for('leaderboard') }}">🏆 Leaderboard</a>
+            <a href="{{ url_for('note_requests') }}">📋 Requests</a>
             {% if is_auth %}
             {% if not is_admin %}
-            <a href="{{ url_for('upload') }}">Upload</a>
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('profile') }}">Profile</a>
+            <a href="{{ url_for('upload') }}">📤 Upload</a>
+            <a href="{{ url_for('dashboard') }}">📊 Dashboard</a>
+            <a href="{{ url_for('profile') }}">👤 Profile</a>
+            <a href="{{ url_for('my_notes') }}">📄 My Notes</a>
+            <a href="{{ url_for('saved_notes_page') }}">🔖 Saved Notes</a>
             {% else %}
-            <a href="{{ url_for('admin_dashboard') }}">Admin Panel</a>
+            <a href="{{ url_for('admin_dashboard') }}">⚙️ Admin Panel</a>
             {% endif %}
-            <a href="{{ url_for('logout') }}">Logout</a>
+            <a href="{{ url_for('logout') }}" style="color:var(--danger);">🚪 Logout</a>
             {% else %}
-            <a href="{{ url_for('login') }}">Login</a>
-            <a href="{{ url_for('register') }}">Sign Up</a>
+            <a href="{{ url_for('login') }}">🔑 Login</a>
+            <a href="{{ url_for('register') }}">✨ Sign Up</a>
             {% endif %}
         </div>
     </nav>
@@ -171,23 +184,33 @@
                     CN</div>
                 <span>Campus<strong style="color: var(--primary)">Notes</strong></span>
                 <p style="margin-top: 8px; font-size: 0.875rem; color: var(--text-secondary);">The premium student
-                    knowledge hub.</p>
+                    knowledge hub. Share, discover, and excel together.</p>
             </div>
             <div class="footer-links">
                 <div>
                     <h4>Platform</h4>
                     <a href="{{ url_for('browse') }}">Browse Notes</a>
                     {% if is_auth %}<a href="{{ url_for('upload') }}">Upload Notes</a>{% endif %}
+                    <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
+                    <a href="{{ url_for('note_requests') }}">Note Requests</a>
                 </div>
                 <div>
-                    <h4>Student</h4>
+                    <h4>Resources</h4>
+                    <a href="{{ url_for('features') }}">Features</a>
                     <a href="{{ url_for('register') }}">Create Account</a>
                     <a href="{{ url_for('login') }}">Sign In</a>
+                </div>
+                <div>
+                    <h4>Contact</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Have questions or
+                        feedback?</p>
+                    <a href="mailto:beherasumit772@gmail.com"
+                        style="color: var(--primary); font-weight: 600;">beherasumit772@gmail.com</a>
                 </div>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>© 2025 CampusNotes · Built for students, by students</p>
+            <p>© 2025 CampusNotes · Created by Sumit Behera. All rights reserved.</p>
         </div>
     </footer>
 

@@ -58,7 +58,7 @@
           <input type="hidden" name="difficulty" value="{{ difficulty }}">
         </div>
 
-        <button type="button" class="filter-reset" onclick="window.location='{{ url_for('browse') }}'">Reset All Filters</button>
+        <button type="button" class="filter-reset" onclick="resetFilters()">Reset All Filters</button>
       </aside>
 
       <!-- MAIN CONTENT -->
@@ -123,4 +123,10 @@
     </div>
   </form>
 </div>
+
+<script>
+function resetFilters() {
+    window.location.href = "{{ url_for('browse') }}";
+}
+</script>
 {% endblock %}
