@@ -4,7 +4,7 @@ from flask import (Flask, render_template, redirect, url_for, flash,
                    request, send_from_directory, jsonify, session, abort, g)
 
 app = Flask(__name__)
-app.secret_key = 'campusnotes-super-secret-2025'
+app.secret_key = os.environ.get('SECRET_KEY', 'campusnotes-super-secret-2025-prod')
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 AVATAR_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads', 'avatars')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -906,6 +906,13 @@ def e404(e): return render_template('errors/404.html'),404
 @app.errorhandler(403)
 def e403(e): return render_template('errors/403.html'),403
 
+@app.errorhandler(500)
+def e500(e):
+    # Log the error internally if needed
+    return render_template('errors/500.html'), 500
+
+# Initialize DB on startup
+init_db()
+
 if __name__=='__main__':
-    init_db()
     app.run(debug=True,port=5002)
