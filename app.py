@@ -119,9 +119,11 @@ def init_db():
         fulfilled_by INTEGER REFERENCES notes(id),
         created_at TEXT DEFAULT(datetime('now')));
     """)
-    if not db.execute("SELECT 1 FROM users WHERE email='admin@campusnotes.com'").fetchone():
+    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
+    admin_pass = os.environ.get('ADMIN_PASSWORD', 'CampusNotesAdmin@2025!Strong')
+    if not db.execute("SELECT 1 FROM users WHERE email=?", (admin_email,)).fetchone():
         db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(?,?,?,?,?)",
-                   ('Admin','admin@campusnotes.com',hashlib.sha256(b'admin123').hexdigest(),'admin','#dc2626'))
+                   ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626'))
     db.commit()
     # Migrations for existing DBs
     for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
@@ -129,7 +131,7 @@ def init_db():
         try: db.execute(sql)
         except: pass
     db.commit(); db.close()
-    print(" DB ready. Admin: admin@campusnotes.com / admin123")
+    print(f" DB ready. Admin: {admin_email} / [Environment Password]")
 
 def hp(p): return hashlib.sha256(p.encode()).hexdigest()
 
@@ -548,7 +550,10 @@ def forgot_password():
         db = get_db()
         u = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
         if not u:
-            flash('This email is not registered with CampusNotes.', 'error')
+            flash('This email is not registered.', 'error')
+            return redirect(url_for('forgot_password'))
+        if u['role'] == 'admin':
+            flash('Admin accounts cannot be reset via this form for security reasons.', 'error')
             return redirect(url_for('forgot_password'))
         # Store email in session to verify next step
         session['reset_email'] = email
@@ -564,6 +569,13 @@ def reset_password():
     
     if request.method == 'POST':
         email = session['reset_email']
+        db = get_db()
+        u = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        if not u or u['role'] == 'admin':
+            session.pop('reset_email', None)
+            flash('Invalid request.', 'error')
+            return redirect(url_for('login'))
+        
         new_password = request.form.get('password')
         confirm_password = request.form.get('confirm')
         
