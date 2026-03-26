@@ -124,8 +124,10 @@
                     </div>
                 </div>
                 {% else %}
-                <a href="{{ url_for('login') }}" class="btn-outline-nav">Login</a>
-                <a href="{{ url_for('register') }}" class="btn-primary-nav">Sign Up</a>
+                <div class="nav-auth-desktop">
+                    <a href="{{ url_for('login') }}" class="btn-outline-nav">Login</a>
+                    <a href="{{ url_for('register') }}" class="btn-primary-nav">Sign Up</a>
+                </div>
                 {% endif %}
 
                 <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>

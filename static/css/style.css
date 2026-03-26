@@ -206,13 +206,38 @@ img { max-width: 100%; }
   font-size: 1.4rem; cursor: pointer; padding: 4px;
 }
 .mobile-menu {
-  display: none; flex-direction: column;
-  padding: 8px 24px 16px; border-top: 1px solid var(--border);
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: var(--card-bg);
+  flex-direction: column;
+  padding: 8px 24px 24px;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  z-index: 999;
 }
 .mobile-menu.open { display: flex; }
 .mobile-menu a {
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-  font-size: 0.95rem; font-weight: 500;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  cursor: pointer;
+  padding: 8px;
+  line-height: 1;
+  color: var(--text-primary);
+  border-radius: 8px;
 }
 
 /* ===================== FLASH ===================== */
@@ -1414,7 +1439,7 @@ tr:hover td { background: var(--bg-primary); }
   .admin-main { padding: 20px 16px; }
   .hero-stats { gap: 24px; flex-wrap: wrap; }
   .mobile-menu-btn { display: block; }
-  .nav-center { display: none; }
+  .nav-center, .nav-auth-desktop { display: none; }
   .compare-card-grid { 
     grid-template-columns: 1fr;
     gap: 16px;
@@ -1451,9 +1476,13 @@ tr:hover td { background: var(--bg-primary); }
     padding: 0;
   }
   .nav-inner {
-    padding: 0 12px;
-    flex-wrap: wrap;
+    padding: 0 16px;
+    flex-wrap: nowrap;
+    justify-content: space-between;
     min-height: var(--nav-h);
+  }
+  .nav-auth-desktop {
+    display: none;
   }
   .brand {
     font-size: 1rem;
@@ -1465,7 +1494,8 @@ tr:hover td { background: var(--bg-primary); }
     font-size: 0.7rem !important;
   }
   .nav-right {
-    gap: 6px;
+    gap: 8px;
+    flex-shrink: 0;
   }
   .user-avatar {
     width: 32px;
@@ -1473,7 +1503,7 @@ tr:hover td { background: var(--bg-primary); }
     font-size: 0.65rem;
   }
   .notif-btn {
-    font-size: 1rem;
+    font-size: 1.1rem;
     padding: 6px;
   }
   .notif-dropdown {
