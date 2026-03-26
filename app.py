@@ -13,6 +13,16 @@ DB_PATH = os.path.join(os.path.dirname(__file__), 'campusnotes.db')
 ALLOWED_EXT = {'pdf','doc','docx','ppt','pptx','png','jpg','jpeg'}
 ALLOWED_AVATAR_EXT = {'png','jpg','jpeg','gif','webp'}
 
+# --- Session & Security Config ---
+# Render/Production detection
+IS_PROD = os.environ.get('RENDER') is not None
+app.config.update(
+    SESSION_COOKIE_SECURE=IS_PROD,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7)
+)
+
 BADGE_TYPES = {
     'first_upload': {'name': 'First Note', 'icon': '📝', 'desc': 'Uploaded your first note'},
     '10_uploads': {'name': '10 Notes', 'icon': '📚', 'desc': 'Uploaded 10 notes'},
@@ -923,8 +933,9 @@ def e500(e):
     # Log the error internally if needed
     return render_template('errors/500.html'), 500
 
-# Initialize DB on startup
-init_db()
+# removed top-level init_db() call to prevent Gunicorn worker race conditions
 
 if __name__=='__main__':
-    app.run(debug=True,port=5002)
+    # Initialize DB only when running locally or via direct execution
+    init_db()
+    app.run(debug=True, port=os.environ.get('PORT', 5002))
