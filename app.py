@@ -131,7 +131,7 @@ def init_db():
         try: db.execute(sql)
         except: pass
     db.commit(); db.close()
-    print(f" DB ready. Admin: {admin_email} / [Environment Password]")
+    print(f" DB ready. Admin: {admin_email} / {admin_pass}")
 
 def hp(p): return hashlib.sha256(p.encode()).hexdigest()
 
