@@ -182,7 +182,10 @@ def inject():
         nav_notifs = db.execute("SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 8",(u['id'],)).fetchall()
     is_auth = u is not None
     is_admin = bool(u and u['role'] == 'admin')
-    user_initials = ''.join(p[0].upper() for p in u['name'].split()[:2]) if u else ''
+    user_initials = ''
+    if u and u['name']:
+        parts = u['name'].split()
+        user_initials = ''.join(p[0].upper() for p in parts[:2] if p)
     return dict(current_user=u, unread_notifs=unread, nav_notifs=nav_notifs,
                 is_auth=is_auth, is_admin=is_admin, user_initials=user_initials,
                 is_exam_season=datetime.now().month in EXAM_MONTHS,
@@ -190,7 +193,10 @@ def inject():
                 config={'BRANCHES':BRANCHES,'SEMESTERS':SEMESTERS,'NOTE_TYPES':NOTE_TYPES,'DIFFICULTY':DIFFICULTY})
 
 @app.template_filter('initials')
-def tpl_initials(n): parts=(n or '').split(); return ''.join(p[0].upper() for p in parts[:2])
+def tpl_initials(n):
+    if not n: return ''
+    parts = n.split()
+    return ''.join(p[0].upper() for p in parts[:2] if p)
 
 @app.template_filter('file_size_str')
 def tpl_fsz(sz):
@@ -930,7 +936,10 @@ def e403(e): return render_template('errors/403.html'),403
 
 @app.errorhandler(500)
 def e500(e):
-    # Log the error internally if needed
+    # Log the error to console for Render logs
+    import traceback
+    print("--- 500 INTERNAL SERVER ERROR ---")
+    traceback.print_exc()
     return render_template('errors/500.html'), 500
 
 # removed top-level init_db() call to prevent Gunicorn worker race conditions
