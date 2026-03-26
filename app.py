@@ -47,6 +47,11 @@ def get_db():
         g.db = sqlite3.connect(DB_PATH)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys=ON")
+        # Fail-safe: Check if tables exist, if not, initialize
+        try:
+            g.db.execute("SELECT 1 FROM notes LIMIT 1")
+        except sqlite3.OperationalError:
+            init_db()
     return g.db
 
 @app.teardown_appcontext
