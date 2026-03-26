@@ -174,23 +174,29 @@ def allowed(fn): return '.' in fn and fn.rsplit('.',1)[1].lower() in ALLOWED_EXT
 
 @app.context_processor
 def inject():
-    u = cur_user()
-    unread = 0; nav_notifs = []
-    if u:
-        db = get_db()
-        unread = db.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0",(u['id'],)).fetchone()[0]
-        nav_notifs = db.execute("SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 8",(u['id'],)).fetchall()
-    is_auth = u is not None
-    is_admin = bool(u and u['role'] == 'admin')
-    user_initials = ''
-    if u and u['name']:
-        parts = u['name'].split()
-        user_initials = ''.join(p[0].upper() for p in parts[:2] if p)
-    return dict(current_user=u, unread_notifs=unread, nav_notifs=nav_notifs,
-                is_auth=is_auth, is_admin=is_admin, user_initials=user_initials,
-                is_exam_season=datetime.now().month in EXAM_MONTHS,
-                badge_types=BADGE_TYPES,
-                config={'BRANCHES':BRANCHES,'SEMESTERS':SEMESTERS,'NOTE_TYPES':NOTE_TYPES,'DIFFICULTY':DIFFICULTY})
+    try:
+        u = cur_user()
+        unread = 0; nav_notifs = []
+        if u:
+            db = get_db()
+            unread = db.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0",(u['id'],)).fetchone()[0]
+            nav_notifs = db.execute("SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 8",(u['id'],)).fetchall()
+        is_auth = u is not None
+        is_admin = bool(u and u['role'] == 'admin')
+        user_initials = ''
+        if u and u['name']:
+            parts = u['name'].split()
+            user_initials = ''.join(p[0].upper() for p in parts[:2] if p)
+        return dict(current_user=u, unread_notifs=unread, nav_notifs=nav_notifs,
+                    is_auth=is_auth, is_admin=is_admin, user_initials=user_initials,
+                    is_exam_season=datetime.now().month in EXAM_MONTHS,
+                    badge_types=BADGE_TYPES,
+                    config={'BRANCHES':BRANCHES,'SEMESTERS':SEMESTERS,'NOTE_TYPES':NOTE_TYPES,'DIFFICULTY':DIFFICULTY})
+    except Exception as e:
+        print(f"Error in context processor: {e}")
+        return dict(current_user=None, unread_notifs=0, nav_notifs=[],
+                    is_auth=False, is_admin=False, user_initials='',
+                    is_exam_season=False, badge_types=BADGE_TYPES, config={})
 
 @app.template_filter('initials')
 def tpl_initials(n):
