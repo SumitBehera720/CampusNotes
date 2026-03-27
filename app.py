@@ -9,9 +9,21 @@ USE_PG = bool(DATABASE_URL)
 if USE_PG:
     import psycopg
     from psycopg.rows import dict_row
+    from psycopg_pool import ConnectionPool
     # Fix Render/Supabase URLs that start with postgres:// instead of postgresql://
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    # Create a connection pool — reuses connections instead of creating one per request
+    pg_pool = ConnectionPool(
+        DATABASE_URL,
+        min_size=2,
+        max_size=5,
+        kwargs={"row_factory": dict_row, "autocommit": False},
+        open=True
+    )
+    print(" PostgreSQL connection pool created")
+else:
+    pg_pool = None
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'campusnotes-super-secret-2025-prod')
@@ -125,8 +137,9 @@ class PgConnectionWrapper:
 def get_db():
     if 'db' not in g:
         if USE_PG:
-            conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, autocommit=False)
+            conn = pg_pool.getconn()  # Get from pool — near-instant!
             g.db = PgConnectionWrapper(conn)
+            g._pg_conn = conn  # Keep reference for returning to pool
         else:
             g.db = sqlite3.connect(DB_PATH)
             g.db.row_factory = sqlite3.Row
@@ -139,10 +152,15 @@ def get_db():
     return g.db
 
 
+
 @app.teardown_appcontext
 def close_db(e=None):
     db = g.pop('db', None)
-    if db: db.close()
+    pg_conn = g.pop('_pg_conn', None)
+    if pg_conn and pg_pool:
+        pg_pool.putconn(pg_conn)  # Return to pool for reuse
+    elif db:
+        db.close()
 
 def init_db():
     if USE_PG:
