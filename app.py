@@ -249,6 +249,12 @@ def init_db():
         if not db.execute("SELECT 1 FROM users WHERE email=%s", (admin_email,)).fetchone():
             db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(%s,%s,%s,%s,%s)",
                        ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626'))
+            print("\n" + "="*50)
+            print(" DEFAULT ADMIN ACCOUNT CREATED")
+            print(f" Email: {admin_email}")
+            print(f" Password: {admin_pass}")
+            print("="*50 + "\n")
+
         db.close()
     else:
         db = sqlite3.connect(DB_PATH)
@@ -330,6 +336,12 @@ def init_db():
         if not db.execute("SELECT 1 FROM users WHERE email=?", (admin_email,)).fetchone():
             db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(?,?,?,?,?)",
                        ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626'))
+            print("\n" + "="*50)
+            print(" DEFAULT ADMIN ACCOUNT CREATED")
+            print(f" Email: {admin_email}")
+            print(f" Password: {admin_pass}")
+            print("="*50 + "\n")
+
         db.commit()
         # Migrations for existing DBs
         for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
