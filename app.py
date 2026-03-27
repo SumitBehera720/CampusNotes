@@ -7,8 +7,8 @@ from flask import (Flask, render_template, redirect, url_for, flash,
 DATABASE_URL = os.environ.get('DATABASE_URL')
 USE_PG = bool(DATABASE_URL)
 if USE_PG:
-    import psycopg2
-    import psycopg2.extras
+    import psycopg
+    from psycopg.rows import dict_row
     # Fix Render/Supabase URLs that start with postgres:// instead of postgresql://
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
@@ -62,7 +62,7 @@ class PgDictRow(dict):
         return super().__getitem__(key)
 
 class PgCursorWrapper:
-    """Wraps psycopg2 cursor to behave like sqlite3: ? placeholders, dict rows."""
+    """Wraps psycopg3 cursor to behave like sqlite3: ? placeholders, dict rows."""
     def __init__(self, cursor):
         self._cur = cursor
     def execute(self, sql, params=None):
@@ -76,7 +76,6 @@ class PgCursorWrapper:
             sql = sql.replace('insert or ignore', 'INSERT')
             sql += ' ON CONFLICT DO NOTHING'
         if 'INSERT OR REPLACE' in sql.upper():
-            # For ratings: INSERT OR REPLACE INTO ratings(user_id,note_id,value)
             sql = sql.replace('INSERT OR REPLACE', 'INSERT')
             sql = sql.replace('insert or replace', 'INSERT')
             if 'ratings' in sql.lower():
@@ -105,11 +104,11 @@ class PgCursorWrapper:
         return self._cur.description
 
 class PgConnectionWrapper:
-    """Wraps psycopg2 connection to match sqlite3 interface."""
+    """Wraps psycopg3 connection to match sqlite3 interface."""
     def __init__(self, conn):
         self._conn = conn
     def execute(self, sql, params=None):
-        cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur = self._conn.cursor(row_factory=dict_row)
         wrapper = PgCursorWrapper(cur)
         wrapper.execute(sql, params)
         return wrapper
@@ -126,8 +125,7 @@ class PgConnectionWrapper:
 def get_db():
     if 'db' not in g:
         if USE_PG:
-            conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-            conn.autocommit = False
+            conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, autocommit=False)
             g.db = PgConnectionWrapper(conn)
         else:
             g.db = sqlite3.connect(DB_PATH)
@@ -140,6 +138,7 @@ def get_db():
             init_db()
     return g.db
 
+
 @app.teardown_appcontext
 def close_db(e=None):
     db = g.pop('db', None)
@@ -147,8 +146,7 @@ def close_db(e=None):
 
 def init_db():
     if USE_PG:
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.autocommit = True
+        conn = psycopg.connect(DATABASE_URL, autocommit=True)
         db = PgConnectionWrapper(conn)
         db.execute("""
         CREATE TABLE IF NOT EXISTS users(
