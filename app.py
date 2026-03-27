@@ -438,20 +438,26 @@ def tpl_fsz(sz):
 @app.template_filter('fmt_date')
 def tpl_date(s):
     if not s: return ''
-    try: return datetime.fromisoformat(s).strftime('%b %d, %Y')
-    except: return s
+    try:
+        if isinstance(s, datetime): return s.strftime('%b %d, %Y')
+        return datetime.fromisoformat(str(s)).strftime('%b %d, %Y')
+    except: return str(s)[:10]
 
 @app.template_filter('fmt_short')
 def tpl_short(s):
     if not s: return ''
-    try: return datetime.fromisoformat(s).strftime('%b %d')
-    except: return s
+    try:
+        if isinstance(s, datetime): return s.strftime('%b %d')
+        return datetime.fromisoformat(str(s)).strftime('%b %d')
+    except: return str(s)[:10]
 
 @app.template_filter('fmt_datetime')
 def tpl_dt(s):
     if not s: return ''
-    try: return datetime.fromisoformat(s).strftime('%b %d, %Y %H:%M')
-    except: return s
+    try:
+        if isinstance(s, datetime): return s.strftime('%b %d, %Y %H:%M')
+        return datetime.fromisoformat(str(s)).strftime('%b %d, %Y %H:%M')
+    except: return str(s)[:16]
 
 @app.template_filter('compact_num')
 def tpl_compact(n):
@@ -462,11 +468,17 @@ def tpl_compact(n):
     return str(n)
 
 def get_uploaders(db, notes_list):
+    """Batch-fetch uploaders in a single query instead of N+1 queries."""
     up = {}
-    for n in notes_list:
-        bid = n['uploaded_by']
-        if bid not in up:
-            up[bid] = db.execute("SELECT * FROM users WHERE id=?",(bid,)).fetchone()
+    uids = list({n['uploaded_by'] for n in notes_list})
+    if not uids: return up
+    if USE_PG:
+        placeholders = ','.join(['%s'] * len(uids))
+    else:
+        placeholders = ','.join(['?'] * len(uids))
+    rows = db.execute(f"SELECT * FROM users WHERE id IN ({placeholders})", tuple(uids)).fetchall()
+    for r in rows:
+        up[r['id']] = r
     return up
 
 def check_badges(db, uid):
@@ -497,9 +509,10 @@ def index():
     featured=db.execute("SELECT * FROM notes WHERE status='approved' AND featured=1 ORDER BY uploaded_at DESC LIMIT 6").fetchall()
     recent=db.execute("SELECT * FROM notes WHERE status='approved' ORDER BY uploaded_at DESC LIMIT 8").fetchall()
     popular=db.execute("SELECT * FROM notes WHERE status='approved' ORDER BY downloads DESC LIMIT 8").fetchall()
-    stats={'notes':db.execute("SELECT COUNT(*) FROM notes WHERE status='approved'").fetchone()[0],
-           'users':db.execute("SELECT COUNT(*) FROM users WHERE role='student'").fetchone()[0],
-           'downloads':db.execute("SELECT COALESCE(SUM(downloads),0) FROM notes").fetchone()[0]}
+    # Combined stats query — 1 query instead of 3
+    stats_row = db.execute("SELECT COUNT(*) as nc, COALESCE(SUM(downloads),0) as dl FROM notes WHERE status='approved'").fetchone()
+    user_count = db.execute("SELECT COUNT(*) FROM users WHERE role='student'").fetchone()[0]
+    stats={'notes': stats_row['nc'], 'users': user_count, 'downloads': stats_row['dl']}
     saved_ids={r['note_id'] for r in db.execute("SELECT note_id FROM saved_notes WHERE user_id=?",(uid,)).fetchall()} if uid else set()
     # Personalized recommendations
     recommended=[]
@@ -930,7 +943,12 @@ def profile():
 
 @app.route('/avatar/<filename>')
 def serve_avatar(filename):
-    return send_from_directory(AVATAR_FOLDER, filename)
+    from flask import make_response
+    resp = make_response(send_from_directory(AVATAR_FOLDER, filename))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 # ─── SOCIAL & PROFILES ──────────────────────────────────────────────
 @app.route('/user/<int:uid>')

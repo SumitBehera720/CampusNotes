@@ -65,7 +65,7 @@
     <!-- Fulfill Modal -->
     {% if req['status'] == 'open' and is_auth %}
     <div class="modal" id="fulfillModal-{{ req['id'] }}" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding: 20px;">
-      <div class="modal-content" style="background:var(--card-bg); padding:32px; border-radius:16px; width:100%; max-width:480px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
+    <div class="modal-content" style="background: var(--card-bg, #ffffff); color: var(--text-primary, #1a1a2e); padding:32px; border-radius:16px; width:100%; max-width:480px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <h3 style="margin:0; font-size:1.4rem;">Fulfill Request</h3>
           <button type="button" onclick="document.getElementById('fulfillModal-{{ req.id }}').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-secondary);">&times;</button>
@@ -77,7 +77,7 @@
             <label class="form-label" style="font-weight:600; margin-bottom:8px; display:block;">Search Your Note</label>
             <input type="text" class="form-input fulfill-search-input" data-req-id="{{ req['id'] }}" placeholder="Type title, subject, or branch..." autocomplete="off">
             <input type="hidden" name="note_id" id="fulfill_hidden_{{ req['id'] }}" required>
-            <div id="fulfill_suggestions_{{ req['id'] }}" class="autocomplete-suggestions" style="display:none; position:absolute; top:100%; left:0; width:100%; z-index:100; max-height:200px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.15);"></div>
+            <div id="fulfill_suggestions_{{ req['id'] }}" class="autocomplete-suggestions" style="display:none; position:absolute; top:100%; left:0; width:100%; z-index:100; max-height:200px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.15); background: var(--card-bg, #ffffff); border-radius: 8px; border: 1px solid var(--border, #e5e7eb);"></div>
           </div>
           
           <div style="background:#f8f9ff; border:1px solid #e0e7ff; padding:16px; border-radius:8px; display:none;" id="fulfill_preview_{{ req['id'] }}">
@@ -108,7 +108,7 @@
 <!-- New Request Modal -->
 {% if is_auth %}
 <div class="modal" id="requestModal" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding: 20px;">
-  <div class="modal-content" style="background:var(--card-bg); padding:32px; border-radius:16px; width:100%; max-width:540px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
+  <div class="modal-content" style="background: var(--card-bg, #ffffff); color: var(--text-primary, #1a1a2e); padding:32px; border-radius:16px; width:100%; max-width:540px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <h3 style="margin:0; font-size:1.5rem;">Create a Request</h3>
       <button type="button" onclick="document.getElementById('requestModal').style.display='none'" style="background:none; border:none; font-size:1.6rem; cursor:pointer; color:var(--text-secondary);">&times;</button>

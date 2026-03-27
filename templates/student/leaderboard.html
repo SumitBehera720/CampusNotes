@@ -15,17 +15,17 @@
       <table class="table">
         <thead>
           <tr>
-            <th>Rank</th>
+            <th style="text-align:center;">Rank</th>
             <th>Student</th>
-            <th>Uploads</th>
-            <th>Total Downloads</th>
-            <th>Badges</th>
+            <th style="text-align:center;">Uploads</th>
+            <th style="text-align:center;">Total Downloads</th>
+            <th style="text-align:center;">Badges</th>
           </tr>
         </thead>
         <tbody>
           {% for u in users %}
           <tr>
-            <td style="font-weight:700; color:var(--text-secondary)">#{{ loop.index }}</td>
+            <td style="font-weight:700; color:var(--text-secondary); text-align:center;">#{{ loop.index }}</td>
             <td>
               <div style="display:flex; align-items:center; gap:12px;">
                 {% if u.profile_picture %}
@@ -40,10 +40,10 @@
                 </div>
               </div>
             </td>
-            <td style="font-weight:600;">{{ u.uploads }}</td>
-            <td style="font-weight:600;">{{ u.total_dl | compact_num }}</td>
-            <td>
-              <div style="display:flex; gap:6px;">
+            <td style="font-weight:600; text-align:center;">{{ u.uploads }}</td>
+            <td style="font-weight:600; text-align:center;">{{ u.total_dl | compact_num }}</td>
+            <td style="text-align:center;">
+              <div style="display:flex; gap:6px; justify-content:center;">
                 {% for b in user_badges[u.id] %}
                 <span title="{{ badge_types[b].name }}" style="font-size:1.1rem;">{{ badge_types[b].icon }}</span>
                 {% endfor %}
@@ -53,6 +53,7 @@
           {% else %}
           <tr><td colspan="5" style="text-align:center; padding:30px;">No contributors yet!</td></tr>
           {% endfor %}
+
         </tbody>
       </table>
     </div>

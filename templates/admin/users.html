@@ -13,44 +13,60 @@
 <div class="table-card">
   <div class="table-card-header">Students ({{ users|length }})</div>
   {% if users %}
-  <table>
-    <thead>
-      <tr><th>User</th><th>Email</th><th>College</th><th>Branch</th><th>Sem</th><th>Notes</th><th>Joined</th><th>Status</th><th>Action</th></tr>
-    </thead>
-    <tbody>
-      {% for user in users %}
-      <tr>
-        <td>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <div class="avatar-xs" style="background:{{ user['avatar_color'] }}">{{ user.initials }}</div>
-            <strong>{{ user['name'] }}</strong>
-          </div>
-        </td>
-        <td>{{ user['email'] }}</td>
-        <td>{{ user['college'] or '—' }}</td>
-        <td>{{ user['branch'] or '—' }}</td>
-        <td>{{ user.semester or '—' }}</td>
-        <td>{{ note_counts[user['id']] }}</td>
-        <td>{{ user['created_at'] | fmt_date }}</td>
-        <td><span class="status-badge status-{{ user['status'] }}">{{ user['status'].title() }}</span></td>
-        <td>
-          <div style="display:flex; gap:8px;">
-            <form method="post" action="{{ url_for('admin_toggle_user', uid=user['id']) }}" style="margin:0;">
-              <button type="submit" class="btn {{ 'btn-success' if user['status'] == 'blocked' else 'btn-danger' }} btn-sm" style="padding:4px 8px; font-size:0.75rem;">
-                {{ 'Unblock' if user['status'] == 'blocked' else 'Block' }}
-              </button>
-            </form>
-            <form method="post" action="{{ url_for('admin_toggle_verified', uid=user['id']) }}" style="margin:0;">
-              <button type="submit" class="btn {{ 'btn-outline' if user.is_verified else 'btn-primary' }} btn-sm" style="padding:4px 8px; font-size:0.75rem;">
-                {{ 'Revoke Badge' if user.is_verified else 'Verify ✓' }}
-              </button>
-            </form>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+      <thead>
+        <tr style="background:var(--bg-secondary); border-bottom:2px solid var(--border);">
+          <th style="padding:12px 16px; text-align:left; font-weight:700; white-space:nowrap;">User</th>
+          <th style="padding:12px 16px; text-align:left; font-weight:700; white-space:nowrap;">Email</th>
+          <th style="padding:12px 16px; text-align:center; font-weight:700; white-space:nowrap;">College</th>
+          <th style="padding:12px 16px; text-align:center; font-weight:700; white-space:nowrap;">Branch</th>
+          <th style="padding:12px 16px; text-align:center; font-weight:700; white-space:nowrap;">Sem</th>
+          <th style="padding:12px 16px; text-align:center; font-weight:700; white-space:nowrap;">Notes</th>
+          <th style="padding:12px 16px; text-align:center; font-weight:700; white-space:nowrap;">Joined</th>
+          <th style="padding:12px 16px; text-align:center; font-weight:700; white-space:nowrap;">Status</th>
+          <th style="padding:12px 16px; text-align:center; font-weight:700; white-space:nowrap;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:12px 16px; white-space:nowrap;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              {% if user['profile_picture'] %}
+              <img src="{{ url_for('serve_avatar', filename=user['profile_picture']) }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+              {% else %}
+              <div class="avatar-xs" style="background:{{ user['avatar_color'] }}; flex-shrink:0;">{{ user.initials }}</div>
+              {% endif %}
+              <strong>{{ user['name'] }}</strong>
+            </div>
+          </td>
+          <td style="padding:12px 16px; color:var(--text-secondary); font-size:0.85rem;">{{ user['email'] }}</td>
+          <td style="padding:12px 16px; text-align:center; color:var(--text-secondary); font-size:0.85rem;">{{ user['college'] or '—' }}</td>
+          <td style="padding:12px 16px; text-align:center; font-weight:500;">{{ user['branch'] or '—' }}</td>
+          <td style="padding:12px 16px; text-align:center;">{{ user.semester or '—' }}</td>
+          <td style="padding:12px 16px; text-align:center; font-weight:600;">{{ note_counts[user['id']] }}</td>
+          <td style="padding:12px 16px; text-align:center; font-size:0.85rem; white-space:nowrap;">{{ user['created_at'] | fmt_date }}</td>
+          <td style="padding:12px 16px; text-align:center;"><span class="status-badge status-{{ user['status'] }}">{{ user['status'].title() }}</span></td>
+          <td style="padding:12px 16px; text-align:center;">
+            <div style="display:flex; gap:6px; justify-content:center;">
+              <form method="post" action="{{ url_for('admin_toggle_user', uid=user['id']) }}" style="margin:0;">
+                <button type="submit" class="btn {{ 'btn-success' if user['status'] == 'blocked' else 'btn-danger' }} btn-sm" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;">
+                  {{ 'Unblock' if user['status'] == 'blocked' else 'Block' }}
+                </button>
+              </form>
+              <form method="post" action="{{ url_for('admin_toggle_verified', uid=user['id']) }}" style="margin:0;">
+                <button type="submit" class="btn {{ 'btn-outline' if user.is_verified else 'btn-primary' }} btn-sm" style="padding:4px 10px; font-size:0.75rem; white-space:nowrap;">
+                  {{ 'Revoke ✓' if user.is_verified else 'Verify ✓' }}
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No users found</div></div>
   {% endif %}
