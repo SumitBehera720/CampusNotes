@@ -182,10 +182,12 @@
           <span class="compare-summary-label">Downloads</span>
           <div class="compare-bar-container">
             {% set max_dl = [n1.downloads, n2.downloads] | max %}
-            <div class="compare-bar-left" style="width: {{ (n1.downloads / max_dl * 100) if max_dl > 0 else 50 }}%;">
+            {% set w1_dl = (n1.downloads / max_dl * 100) if max_dl > 0 else 50 %}
+            {% set w2_dl = (n2.downloads / max_dl * 100) if max_dl > 0 else 50 %}
+            <div class="compare-bar-left" style="width: {{ w1_dl }}%;">
               <span>{{ n1.downloads }}</span>
             </div>
-            <div class="compare-bar-right" style="width: {{ (n2.downloads / max_dl * 100) if max_dl > 0 else 50 }}%;">
+            <div class="compare-bar-right" style="width: {{ w2_dl }}%;">
               <span>{{ n2.downloads }}</span>
             </div>
           </div>
@@ -194,10 +196,12 @@
           <span class="compare-summary-label">Views</span>
           <div class="compare-bar-container">
             {% set max_views = [n1.views, n2.views] | max %}
-            <div class="compare-bar-left" style="width: {{ (n1.views / max_views * 100) if max_views > 0 else 50 }}%;">
+            {% set w1_views = (n1.views / max_views * 100) if max_views > 0 else 50 %}
+            {% set w2_views = (n2.views / max_views * 100) if max_views > 0 else 50 %}
+            <div class="compare-bar-left" style="width: {{ w1_views }}%;">
               <span>{{ n1.views }}</span>
             </div>
-            <div class="compare-bar-right" style="width: {{ (n2.views / max_views * 100) if max_views > 0 else 50 }}%;">
+            <div class="compare-bar-right" style="width: {{ w2_views }}%;">
               <span>{{ n2.views }}</span>
             </div>
           </div>
