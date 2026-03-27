@@ -36,7 +36,7 @@
               {% if user['profile_picture'] %}
               <img src="{{ url_for('serve_avatar', filename=user['profile_picture']) }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
               {% else %}
-              <div class="avatar-xs" style="background:{{ user['avatar_color'] }}; flex-shrink:0;">{{ user.initials }}</div>
+              <div class="avatar-xs" data-bg="{{ user['avatar_color'] }}" style="flex-shrink:0;">{{ user.initials }}</div>
               {% endif %}
               <strong>{{ user['name'] }}</strong>
             </div>

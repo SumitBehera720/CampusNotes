@@ -31,7 +31,7 @@
                 {% if u.profile_picture %}
                 <img src="{{ url_for('serve_avatar', filename=u.profile_picture) }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
                 {% else %}
-                <div class="avatar-xs" style="background:{{ u.avatar_color }}">{{ u.name | initials }}</div>
+                <div class="avatar-xs" data-bg="{{ u.avatar_color }}">{{ u.name | initials }}</div>
                 {% endif %}
                 <div>
                   <a href="{{ url_for('public_profile', uid=u.id) }}" style="text-decoration:none; color:var(--text-primary); font-weight:600;">{{ u.name }}</a>

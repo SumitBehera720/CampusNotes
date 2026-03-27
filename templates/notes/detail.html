@@ -159,11 +159,16 @@
     <div class="detail-card" style="margin-top:16px">
       <div class="detail-card-header">Uploaded By</div>
       <div class="detail-card-body" style="display:flex;gap:12px;align-items:center">
-        {% if uploader.profile_picture %}
-        <img src="{{ url_for('serve_avatar', filename=uploader.profile_picture) }}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">
-        {% else %}
-        <div class="user-avatar-lg" data-bg="{{ uploader['avatar_color'] }}">{{ uploader['name'] | initials }}</div>
-        {% endif %}
+        <div style="position: relative; width: 48px; height: 48px; flex-shrink: 0;">
+          {% if uploader.profile_picture %}
+          <img src="{{ url_for('serve_avatar', filename=uploader.profile_picture) }}" 
+               style="width:48px;height:48px;border-radius:50%;object-fit:cover;"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="user-avatar-lg" data-bg="{{ uploader['avatar_color'] }}" style="display:none; width:48px; height:48px; font-size:1rem">{{ uploader['name'] | initials }}</div>
+          {% else %}
+          <div class="user-avatar-lg" data-bg="{{ uploader['avatar_color'] }}" style="width:48px; height:48px; font-size:1rem">{{ uploader['name'] | initials }}</div>
+          {% endif %}
+        </div>
         <div>
           <div style="font-weight:600;font-size:0.95rem;display:flex;align-items:center;gap:4px;">
             <a href="{{ url_for('public_profile', uid=uploader.id) }}" style="text-decoration:none;color:inherit;">{{ uploader['name'] }}</a>
@@ -216,6 +221,7 @@
 
 <script>
   document.body.dataset.noteId="{{ note['id'] }}";
+  // Apply dynamic styles (helper if not already in base.html)
   document.querySelectorAll('[data-bg]').forEach(function(el) {
     el.style.backgroundColor = el.dataset.bg;
   });
