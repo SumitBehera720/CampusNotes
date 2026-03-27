@@ -3,6 +3,16 @@ from datetime import datetime, date, timedelta
 from flask import (Flask, render_template, redirect, url_for, flash,
                    request, send_from_directory, jsonify, session, abort, g)
 
+# PostgreSQL support
+DATABASE_URL = os.environ.get('DATABASE_URL')
+USE_PG = bool(DATABASE_URL)
+if USE_PG:
+    import psycopg2
+    import psycopg2.extras
+    # Fix Render/Supabase URLs that start with postgres:// instead of postgresql://
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'campusnotes-super-secret-2025-prod')
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
@@ -14,7 +24,6 @@ ALLOWED_EXT = {'pdf','doc','docx','ppt','pptx','png','jpg','jpeg'}
 ALLOWED_AVATAR_EXT = {'png','jpg','jpeg','gif','webp'}
 
 # --- Session & Security Config ---
-# Render/Production detection
 IS_PROD = os.environ.get('RENDER') is not None
 app.config.update(
     SESSION_COOKIE_SECURE=IS_PROD,
@@ -31,7 +40,7 @@ BADGE_TYPES = {
     'top_rated': {'name': 'Top Rated', 'icon': '⭐', 'desc': 'Average rating above 4.5'},
     'verified': {'name': 'Verified', 'icon': '✅', 'desc': 'Verified contributor'},
 }
-EXAM_MONTHS = {4, 5, 11, 12}  # Apr, May, Nov, Dec
+EXAM_MONTHS = {4, 5, 11, 12}
 BRANCHES = ['CSE','IT','ECE','Civil','Mechanical','EEE','Chemical','BCA','BBA','BSC-Biotech','BSC-Nursing','ANM','GNM','DIPLOMA','PGDM','MBA','MCA','Other']
 SEMESTERS = list(range(1,9))
 NOTE_TYPES = ['PDF','PPT','Handwritten','PYQs','Assignments','Lab Manual']
@@ -41,16 +50,93 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AVATAR_FOLDER, exist_ok=True)
 ALLOWED_AVATAR_EXT = {'png','jpg','jpeg','gif','webp'}
 
+# ─── DB Compatibility Layer ─────────────────────────────────────────
+class PgDictRow(dict):
+    """Dict row that also supports integer indexing like sqlite3.Row."""
+    def __init__(self, data):
+        super().__init__(data)
+        self._values = list(data.values())
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        return super().__getitem__(key)
+
+class PgCursorWrapper:
+    """Wraps psycopg2 cursor to behave like sqlite3: ? placeholders, dict rows."""
+    def __init__(self, cursor):
+        self._cur = cursor
+    def execute(self, sql, params=None):
+        sql = sql.replace('?', '%s')
+        # Translate SQLite functions to PostgreSQL
+        sql = sql.replace("datetime('now')", "NOW()")
+        sql = sql.replace("date(uploaded_at)", "uploaded_at::date")
+        # Translate SQLite INSERT OR to PostgreSQL ON CONFLICT
+        if 'INSERT OR IGNORE' in sql.upper():
+            sql = sql.replace('INSERT OR IGNORE', 'INSERT')
+            sql = sql.replace('insert or ignore', 'INSERT')
+            sql += ' ON CONFLICT DO NOTHING'
+        if 'INSERT OR REPLACE' in sql.upper():
+            # For ratings: INSERT OR REPLACE INTO ratings(user_id,note_id,value)
+            sql = sql.replace('INSERT OR REPLACE', 'INSERT')
+            sql = sql.replace('insert or replace', 'INSERT')
+            if 'ratings' in sql.lower():
+                sql += ' ON CONFLICT (user_id, note_id) DO UPDATE SET value = EXCLUDED.value'
+            else:
+                sql += ' ON CONFLICT DO NOTHING'
+        # Case-insensitive LIKE for PostgreSQL
+        sql = sql.replace(' LIKE ', ' ILIKE ')
+        self._cur.execute(sql, params or ())
+        return self
+    def fetchone(self):
+        row = self._cur.fetchone()
+        return PgDictRow(row) if row else None
+    def fetchall(self):
+        rows = self._cur.fetchall()
+        return [PgDictRow(r) for r in rows]
+    @property
+    def lastrowid(self):
+        try:
+            self._cur.execute("SELECT lastval()")
+            return self._cur.fetchone()['lastval']
+        except:
+            return None
+    @property
+    def description(self):
+        return self._cur.description
+
+class PgConnectionWrapper:
+    """Wraps psycopg2 connection to match sqlite3 interface."""
+    def __init__(self, conn):
+        self._conn = conn
+    def execute(self, sql, params=None):
+        cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        wrapper = PgCursorWrapper(cur)
+        wrapper.execute(sql, params)
+        return wrapper
+    def executescript(self, sql):
+        cur = self._conn.cursor()
+        cur.execute(sql)
+        self._conn.commit()
+    def commit(self):
+        self._conn.commit()
+    def close(self):
+        self._conn.close()
+
 # ─── DB ─────────────────────────────────────────────────────────────
 def get_db():
     if 'db' not in g:
-        g.db = sqlite3.connect(DB_PATH)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys=ON")
+        if USE_PG:
+            conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+            conn.autocommit = False
+            g.db = PgConnectionWrapper(conn)
+        else:
+            g.db = sqlite3.connect(DB_PATH)
+            g.db.row_factory = sqlite3.Row
+            g.db.execute("PRAGMA foreign_keys=ON")
         # Fail-safe: Check if tables exist, if not, initialize
         try:
             g.db.execute("SELECT 1 FROM notes LIMIT 1")
-        except sqlite3.OperationalError:
+        except Exception:
             init_db()
     return g.db
 
@@ -60,93 +146,198 @@ def close_db(e=None):
     if db: db.close()
 
 def init_db():
-    db = sqlite3.connect(DB_PATH)
-    db.executescript("""
-    CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL,
-        role TEXT DEFAULT 'student', status TEXT DEFAULT 'active',
-        college TEXT, branch TEXT, semester INTEGER, bio TEXT,
-        avatar_color TEXT DEFAULT '#4f46e5', profile_picture TEXT,
-        created_at TEXT DEFAULT(datetime('now')));
-    CREATE TABLE IF NOT EXISTS notes(
-        id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
-        subject TEXT NOT NULL, branch TEXT NOT NULL, semester INTEGER NOT NULL,
-        note_type TEXT NOT NULL, difficulty TEXT NOT NULL,
-        description TEXT, tags TEXT, college TEXT, file_path TEXT NOT NULL,
-        file_name TEXT, file_size INTEGER, file_ext TEXT,
-        uploaded_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        downloads INTEGER DEFAULT 0, views INTEGER DEFAULT 0,
-        status TEXT DEFAULT 'pending', reject_reason TEXT,
-        featured INTEGER DEFAULT 0,
-        uploaded_at TEXT DEFAULT(datetime('now')), approved_at TEXT);
-    CREATE TABLE IF NOT EXISTS saved_notes(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-        saved_at TEXT DEFAULT(datetime('now')), UNIQUE(user_id,note_id));
-    CREATE TABLE IF NOT EXISTS download_history(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-        downloaded_at TEXT DEFAULT(datetime('now')));
-    CREATE TABLE IF NOT EXISTS notifications(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        message TEXT NOT NULL, type TEXT DEFAULT 'info',
-        is_read INTEGER DEFAULT 0, link TEXT,
-        created_at TEXT DEFAULT(datetime('now')));
-    CREATE TABLE IF NOT EXISTS ratings(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-        value INTEGER NOT NULL, created_at TEXT DEFAULT(datetime('now')),
-        UNIQUE(user_id,note_id));
-    CREATE TABLE IF NOT EXISTS comments(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-        content TEXT NOT NULL, is_deleted INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT(datetime('now')));
-    CREATE TABLE IF NOT EXISTS reports(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reporter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-        reason TEXT NOT NULL, status TEXT DEFAULT 'open',
-        created_at TEXT DEFAULT(datetime('now')));
-    CREATE TABLE IF NOT EXISTS follows(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        follower_id INTEGER NOT NULL REFERENCES users(id),
-        following_id INTEGER NOT NULL REFERENCES users(id),
-        created_at TEXT DEFAULT(datetime('now')),
-        UNIQUE(follower_id, following_id));
-    CREATE TABLE IF NOT EXISTS badges(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL REFERENCES users(id),
-        badge_type TEXT NOT NULL,
-        earned_at TEXT DEFAULT(datetime('now')),
-        UNIQUE(user_id, badge_type));
-    CREATE TABLE IF NOT EXISTS note_requests(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL REFERENCES users(id),
-        subject TEXT NOT NULL, branch TEXT, semester INTEGER,
-        description TEXT, status TEXT DEFAULT 'open',
-        fulfilled_by INTEGER REFERENCES notes(id),
-        created_at TEXT DEFAULT(datetime('now')));
-    """)
-    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
-    admin_pass = os.environ.get('ADMIN_PASSWORD', 'CampusNotesAdmin@2025!Strong')
-    if not db.execute("SELECT 1 FROM users WHERE email=?", (admin_email,)).fetchone():
-        db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(?,?,?,?,?)",
-                   ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626'))
-    db.commit()
-    # Migrations for existing DBs
-    for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
-                     ('is_verified', 'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0')]:
-        try: db.execute(sql)
-        except: pass
-    db.commit(); db.close()
-    print(f" DB ready. Admin: {admin_email} / {admin_pass}")
+    if USE_PG:
+        conn = psycopg2.connect(DATABASE_URL)
+        conn.autocommit = True
+        db = PgConnectionWrapper(conn)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id SERIAL PRIMARY KEY, name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'student', status TEXT DEFAULT 'active',
+            college TEXT, branch TEXT, semester INTEGER, bio TEXT,
+            avatar_color TEXT DEFAULT '#4f46e5', profile_picture TEXT,
+            is_verified INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS notes(
+            id SERIAL PRIMARY KEY, title TEXT NOT NULL,
+            subject TEXT NOT NULL, branch TEXT NOT NULL, semester INTEGER NOT NULL,
+            note_type TEXT NOT NULL, difficulty TEXT NOT NULL,
+            description TEXT, tags TEXT, college TEXT, file_path TEXT NOT NULL,
+            file_name TEXT, file_size INTEGER, file_ext TEXT,
+            uploaded_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            downloads INTEGER DEFAULT 0, views INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'pending', reject_reason TEXT,
+            featured INTEGER DEFAULT 0,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, approved_at TIMESTAMP)
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS saved_notes(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id,note_id))
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS download_history(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS notifications(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message TEXT NOT NULL, type TEXT DEFAULT 'info',
+            is_read INTEGER DEFAULT 0, link TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS ratings(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            value INTEGER NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id,note_id))
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS comments(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            content TEXT NOT NULL, is_deleted INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS reports(
+            id SERIAL PRIMARY KEY,
+            reporter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            reason TEXT NOT NULL, status TEXT DEFAULT 'open',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS follows(
+            id SERIAL PRIMARY KEY,
+            follower_id INTEGER NOT NULL REFERENCES users(id),
+            following_id INTEGER NOT NULL REFERENCES users(id),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(follower_id, following_id))
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS badges(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            badge_type TEXT NOT NULL,
+            earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, badge_type))
+        """)
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS note_requests(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            subject TEXT NOT NULL, branch TEXT, semester INTEGER,
+            description TEXT, status TEXT DEFAULT 'open',
+            fulfilled_by INTEGER REFERENCES notes(id),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+        """)
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
+        admin_pass = os.environ.get('ADMIN_PASSWORD', 'CampusNotesAdmin@2025!Strong')
+        if not db.execute("SELECT 1 FROM users WHERE email=%s", (admin_email,)).fetchone():
+            db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(%s,%s,%s,%s,%s)",
+                       ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626'))
+        db.close()
+    else:
+        db = sqlite3.connect(DB_PATH)
+        db.executescript("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'student', status TEXT DEFAULT 'active',
+            college TEXT, branch TEXT, semester INTEGER, bio TEXT,
+            avatar_color TEXT DEFAULT '#4f46e5', profile_picture TEXT,
+            created_at TEXT DEFAULT(datetime('now')));
+        CREATE TABLE IF NOT EXISTS notes(
+            id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
+            subject TEXT NOT NULL, branch TEXT NOT NULL, semester INTEGER NOT NULL,
+            note_type TEXT NOT NULL, difficulty TEXT NOT NULL,
+            description TEXT, tags TEXT, college TEXT, file_path TEXT NOT NULL,
+            file_name TEXT, file_size INTEGER, file_ext TEXT,
+            uploaded_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            downloads INTEGER DEFAULT 0, views INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'pending', reject_reason TEXT,
+            featured INTEGER DEFAULT 0,
+            uploaded_at TEXT DEFAULT(datetime('now')), approved_at TEXT);
+        CREATE TABLE IF NOT EXISTS saved_notes(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            saved_at TEXT DEFAULT(datetime('now')), UNIQUE(user_id,note_id));
+        CREATE TABLE IF NOT EXISTS download_history(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            downloaded_at TEXT DEFAULT(datetime('now')));
+        CREATE TABLE IF NOT EXISTS notifications(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message TEXT NOT NULL, type TEXT DEFAULT 'info',
+            is_read INTEGER DEFAULT 0, link TEXT,
+            created_at TEXT DEFAULT(datetime('now')));
+        CREATE TABLE IF NOT EXISTS ratings(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            value INTEGER NOT NULL, created_at TEXT DEFAULT(datetime('now')),
+            UNIQUE(user_id,note_id));
+        CREATE TABLE IF NOT EXISTS comments(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            content TEXT NOT NULL, is_deleted INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT(datetime('now')));
+        CREATE TABLE IF NOT EXISTS reports(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reporter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            reason TEXT NOT NULL, status TEXT DEFAULT 'open',
+            created_at TEXT DEFAULT(datetime('now')));
+        CREATE TABLE IF NOT EXISTS follows(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            follower_id INTEGER NOT NULL REFERENCES users(id),
+            following_id INTEGER NOT NULL REFERENCES users(id),
+            created_at TEXT DEFAULT(datetime('now')),
+            UNIQUE(follower_id, following_id));
+        CREATE TABLE IF NOT EXISTS badges(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            badge_type TEXT NOT NULL,
+            earned_at TEXT DEFAULT(datetime('now')),
+            UNIQUE(user_id, badge_type));
+        CREATE TABLE IF NOT EXISTS note_requests(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            subject TEXT NOT NULL, branch TEXT, semester INTEGER,
+            description TEXT, status TEXT DEFAULT 'open',
+            fulfilled_by INTEGER REFERENCES notes(id),
+            created_at TEXT DEFAULT(datetime('now')));
+        """)
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
+        admin_pass = os.environ.get('ADMIN_PASSWORD', 'CampusNotesAdmin@2025!Strong')
+        if not db.execute("SELECT 1 FROM users WHERE email=?", (admin_email,)).fetchone():
+            db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(?,?,?,?,?)",
+                       ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626'))
+        db.commit()
+        # Migrations for existing DBs
+        for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
+                         ('is_verified', 'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0')]:
+            try: db.execute(sql)
+            except: pass
+        db.commit(); db.close()
+    print(f" DB ready ({('PostgreSQL' if USE_PG else 'SQLite')})")
 
 def hp(p): return hashlib.sha256(p.encode()).hexdigest()
 
@@ -947,15 +1138,39 @@ def e403(e): return render_template('errors/403.html'),403
 
 @app.errorhandler(500)
 def e500(e):
-    # Log the error to console for Render logs
     import traceback
     print("--- 500 INTERNAL SERVER ERROR ---")
     traceback.print_exc()
     return render_template('errors/500.html'), 500
 
-# removed top-level init_db() call to prevent Gunicorn worker race conditions
+# ─── HEALTH CHECK ───────────────────────────────────────────────────
+@app.route('/health')
+def health_check():
+    """Lightweight endpoint for cron job keepalive — no DB access."""
+    return jsonify({'status': 'ok'}), 200
+
+# ─── DB INIT ON FIRST REQUEST (for Gunicorn workers) ────────────────
+_db_initialized = False
+@app.before_request
+def ensure_db_initialized():
+    global _db_initialized
+    if not _db_initialized:
+        try:
+            get_db()  # This triggers init_db() if tables don't exist
+        except Exception as e:
+            print(f"DB init error on first request: {e}")
+            init_db()
+        _db_initialized = True
+
+# Initialize DB at module level for production (Gunicorn)
+if USE_PG:
+    try:
+        init_db()
+        print(" PostgreSQL DB initialized at startup")
+    except Exception as e:
+        print(f" Warning: DB init at startup failed: {e}")
 
 if __name__=='__main__':
-    # Initialize DB only when running locally or via direct execution
     init_db()
     app.run(debug=True, port=os.environ.get('PORT', 5002))
+
