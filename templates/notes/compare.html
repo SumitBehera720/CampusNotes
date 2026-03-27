@@ -184,10 +184,10 @@
             {% set max_dl = [n1.downloads, n2.downloads] | max %}
             {% set w1_dl = (n1.downloads / max_dl * 100) if max_dl > 0 else 50 %}
             {% set w2_dl = (n2.downloads / max_dl * 100) if max_dl > 0 else 50 %}
-            <div class="compare-bar-left" style="width: {{ w1_dl }}%;">
+            <div class="compare-bar-left" data-width="{{ w1_dl }}">
               <span>{{ n1.downloads }}</span>
             </div>
-            <div class="compare-bar-right" style="width: {{ w2_dl }}%;">
+            <div class="compare-bar-right" data-width="{{ w2_dl }}">
               <span>{{ n2.downloads }}</span>
             </div>
           </div>
@@ -198,10 +198,10 @@
             {% set max_views = [n1.views, n2.views] | max %}
             {% set w1_views = (n1.views / max_views * 100) if max_views > 0 else 50 %}
             {% set w2_views = (n2.views / max_views * 100) if max_views > 0 else 50 %}
-            <div class="compare-bar-left" style="width: {{ w1_views }}%;">
+            <div class="compare-bar-left" data-width="{{ w1_views }}">
               <span>{{ n1.views }}</span>
             </div>
-            <div class="compare-bar-right" style="width: {{ w2_views }}%;">
+            <div class="compare-bar-right" data-width="{{ w2_views }}">
               <span>{{ n2.views }}</span>
             </div>
           </div>
@@ -268,5 +268,10 @@ function setupCompareSearch(inputId, suggestionsId, hiddenId) {
 
 setupCompareSearch('search1', 'suggestions1', 'n1val');
 setupCompareSearch('search2', 'suggestions2', 'n2val');
+
+// Apply dynamic widths to comparison bars
+document.querySelectorAll('[data-width]').forEach(function(el) {
+  el.style.width = el.getAttribute('data-width') + '%';
+});
 </script>
 {% endblock %}
