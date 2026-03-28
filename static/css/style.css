@@ -290,6 +290,8 @@ img { max-width: 100%; }
 .btn-sm { padding: 5px 14px; font-size: 0.8rem; }
 .btn-lg { padding: 12px 28px; font-size: 1rem; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed !important; }
+.w-full { width: 100% !important; display: flex !important; justify-content: center !important; }
+.btn.saved, .action-btn.saved { background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; }
 
 /* ===================== CARDS ===================== */
 .card, .dashboard-section, .auth-card, .form-card, .detail-card, .table-card, .stat-card {
@@ -637,6 +639,12 @@ img { max-width: 100%; }
 }
 .related-info a { font-size: 0.875rem; font-weight: 600; line-height: 1.3; display: block; }
 .related-info small { color: var(--text-secondary); font-size: 0.75rem; }
+
+@media (max-width: 800px) {
+  .detail-layout { grid-template-columns: 1fr; }
+  .detail-sidebar { width: 100%; order: 2; }
+  .detail-main { order: 1; }
+}
 
 /* ===================== ADMIN ===================== */
 .admin-layout {

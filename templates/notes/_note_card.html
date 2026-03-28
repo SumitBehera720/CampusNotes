@@ -17,7 +17,7 @@
   <div class="uploader-info">
     <div style="position: relative; width: 22px; height: 22px; flex-shrink: 0;">
       {% if note['uploader_pic'] %}
-      <img src="{{ url_for('serve_avatar', filename=note['uploader_pic']) }}" 
+      <img src="{{ get_avatar_url(note['uploader_pic']) }}" 
            class="avatar-xs" 
            alt="{{ note['uploader_name'] | initials }}"
            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -48,12 +48,14 @@
       <span title="File Size">💾 {{ note['file_size'] | file_size_str }}</span>
     </div>
     <div class="note-actions">
+      {% if is_auth %}
       <button class="action-btn toggle-save {{ 'saved' if note['is_saved'] }}" 
               data-id="{{ note['id'] }}" 
               onclick="toggleSave(this.dataset.id, this)"
               title="Save Note">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="{% if note['is_saved'] %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
       </button>
+      {% endif %}
       <a href="{{ url_for('note_detail', nid=note['id']) }}" class="btn btn-primary btn-sm" style="padding: 4px 10px;">View</a>
     </div>
   </div>
