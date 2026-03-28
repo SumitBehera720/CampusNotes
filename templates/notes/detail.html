@@ -127,7 +127,7 @@
 
   <!-- SIDEBAR -->
   <aside class="detail-sidebar">
-    <div style="position:sticky; top:80px; padding-top:124px;">
+    <div style="position:sticky; top:80px; padding-top:200px;">
       <div class="detail-card">
         <div class="detail-card-body">
             {% if is_auth %}
@@ -136,8 +136,13 @@
               Download {{ note['file_ext'] | upper }}
             </a>
             <button data-id="{{ note['id'] }}" onclick="toggleSave(this.dataset.id, this)" class="btn btn-outline w-full {{ 'saved' if is_saved }}" style="gap:8px; margin-bottom:16px; padding:12px 0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="{% if is_saved %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-              {% if is_saved %}Saved to Bookmarks{% else %}Save to Bookmarks{% endif %}
+              {% if is_saved %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24" id="save" style="vertical-align:middle;"><path fill="currentColor" d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13.131a1 1 0 0 1-1.555.832l-3.89-2.593a1 1 0 0 0-1.11 0l-3.89 2.593A1 1 0 0 1 6 18.131V5Z"></path></svg>
+              Saved to Bookmarks
+              {% else %}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" id="save" width="18" height="18" fill="currentColor" style="vertical-align:middle;"><path d="M23 5H9C7.346 5 6 6.346 6 8v19a1 1 0 0 0 1.614.789L16 21.267l8.386 6.522a.996.996 0 0 0 1.053.109A1 1 0 0 0 26 27V8c0-1.654-1.346-3-3-3zm1 19.956-7.386-5.745a.999.999 0 0 0-1.228-.001L8 24.956V8c0-.551.449-1 1-1h14c.551 0 1 .449 1 1v16.956z"></path></svg>
+              Save to Bookmarks
+              {% endif %}
             </button>
             {% else %}
             <a href="{{ url_for('login') }}" class="btn btn-primary w-full" style="gap:8px; margin-bottom:10px; padding:12px 0;">
@@ -186,8 +191,8 @@
       {% endif %}
 
       <!-- Compare Card -->
-      <div class="detail-card" style="margin-top:16px; padding:0; overflow:hidden;">
-        <a href="{{ url_for('compare_notes', n1=note['id']) }}" class="btn btn-outline w-full" style="border:none; padding:12px 0; display:flex; justify-content:center; align-items:center; gap:8px; border-radius:0;">
+      <div class="detail-card" style="margin-top:16px; padding:0; overflow:hidden; border: 1px solid var(--border); box-shadow:none;">
+        <a href="{{ url_for('compare_notes', n1=note['id']) }}" class="btn btn-outline w-full" style="border:none !important; padding:12px 0; display:flex; justify-content:center; align-items:center; gap:8px; border-radius:0; box-shadow:none !important;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
           Compare with Another
         </a>

@@ -35,6 +35,9 @@ DB_PATH = os.path.join(os.path.dirname(__file__), 'campusnotes.db')
 ALLOWED_EXT = {'pdf','doc','docx','ppt','pptx','png','jpg','jpeg'}
 ALLOWED_AVATAR_EXT = {'png','jpg','jpeg','gif','webp'}
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(AVATAR_FOLDER, exist_ok=True)
+
 # --- Session & Security Config ---
 IS_PROD = os.environ.get('RENDER') is not None
 app.config.update(
@@ -513,9 +516,16 @@ def check_badges(db, uid):
 @app.route('/')
 def index():
     db=get_db(); u=cur_user(); uid=u['id'] if u else None
-    featured=db.execute("SELECT * FROM notes WHERE status='approved' AND featured=1 ORDER BY uploaded_at DESC LIMIT 6").fetchall()
-    recent=db.execute("SELECT * FROM notes WHERE status='approved' ORDER BY uploaded_at DESC LIMIT 8").fetchall()
-    popular=db.execute("SELECT * FROM notes WHERE status='approved' ORDER BY downloads DESC LIMIT 8").fetchall()
+    note_sql = """
+        SELECT n.*, u.name as uploader_name, u.profile_picture as uploader_pic, 
+               u.avatar_color as uploader_color, u.is_verified as uploader_verified 
+        FROM notes n 
+        JOIN users u ON n.uploaded_by = u.id 
+        WHERE n.status='approved'
+    """
+    featured = db.execute(f"{note_sql} AND n.featured=1 ORDER BY n.uploaded_at DESC LIMIT 6").fetchall()
+    recent = db.execute(f"{note_sql} ORDER BY n.uploaded_at DESC LIMIT 8").fetchall()
+    popular = db.execute(f"{note_sql} ORDER BY n.downloads DESC LIMIT 8").fetchall()
     # Combined stats query — 1 query instead of 3
     stats_row = db.execute("SELECT COUNT(*) as nc, COALESCE(SUM(downloads),0) as dl FROM notes WHERE status='approved'").fetchone()
     user_count = db.execute("SELECT COUNT(*) FROM users WHERE role='student'").fetchone()[0]
@@ -525,13 +535,13 @@ def index():
     recommended=[]
     if u and u['branch'] and u['semester']:
         downloaded_ids = {r['note_id'] for r in db.execute("SELECT note_id FROM download_history WHERE user_id=?",(uid,)).fetchall()}
-        rec = db.execute("SELECT * FROM notes WHERE status='approved' AND (branch=? OR semester=?) ORDER BY downloads DESC LIMIT 8",
+        rec = db.execute(f"{note_sql} AND (n.branch=? OR n.semester=?) ORDER BY n.downloads DESC LIMIT 8",
                          (u['branch'], u['semester'])).fetchall()
         recommended = [n for n in rec if n['id'] not in downloaded_ids][:6]
     # Exam season notes
     exam_notes=[]
     if datetime.now().month in EXAM_MONTHS:
-        exam_notes=db.execute("SELECT * FROM notes WHERE status='approved' AND (note_type='PYQs' OR difficulty='Exam-Oriented') ORDER BY downloads DESC LIMIT 6").fetchall()
+        exam_notes=db.execute(f"{note_sql} AND (n.note_type='PYQs' OR n.difficulty='Exam-Oriented') ORDER BY n.downloads DESC LIMIT 6").fetchall()
     uploaders=get_uploaders(db, list(featured)+list(recent)+list(popular)+recommended+exam_notes)
     return render_template('notes/index.html',featured=featured,recent=recent,popular=popular,
                            stats=stats,saved_ids=saved_ids,uploaders=uploaders,
@@ -565,9 +575,18 @@ def browse():
     if note_type: where.append("note_type=?"); params.append(note_type)
     if difficulty: where.append("difficulty=?"); params.append(difficulty)
     order={'downloads':'downloads DESC','saves':'views DESC'}.get(sort,'uploaded_at DESC')
-    base=f"FROM notes WHERE {' AND '.join(where)}"
+    base=f"FROM notes n JOIN users u ON n.uploaded_by = u.id WHERE n.status='approved' {' AND n.' + ' AND n.'.join(where[1:]) if len(where) > 1 else ''}"
+    if len(where) > 1:
+        # Re-build where for JOIN
+        j_where = ["n.status='approved'"]
+        for w in where[1:]:
+            j_where.append(f"n.{w}")
+        base = f"FROM notes n JOIN users u ON n.uploaded_by = u.id WHERE {' AND '.join(j_where)}"
+    else:
+        base = f"FROM notes n JOIN users u ON n.uploaded_by = u.id WHERE n.status='approved'"
+    
     total=db.execute(f"SELECT COUNT(*) {base}",params).fetchone()[0]
-    notes=db.execute(f"SELECT * {base} ORDER BY {order} LIMIT ? OFFSET ?",params+[pp,(page-1)*pp]).fetchall()
+    notes=db.execute(f"SELECT n.*, u.name as uploader_name, u.profile_picture as uploader_pic, u.avatar_color as uploader_color, u.is_verified as uploader_verified {base} ORDER BY n.{order} LIMIT ? OFFSET ?",params+[pp,(page-1)*pp]).fetchall()
     if not notes and q:
         # fallback to similar results on any words if exact combination returns none
         words=[w for w in q.split() if w]
@@ -700,6 +719,9 @@ def download_note(nid):
     db.execute("INSERT INTO download_history(user_id,note_id) VALUES(?,?)",(u['id'],nid))
     db.commit()
     check_badges(db, note['uploaded_by'])
+    if not os.path.exists(os.path.join(UPLOAD_FOLDER, note['file_path'])):
+        flash('Sorry, the file was not found on the server. It may have been deleted by the cloud hosting provider.', 'error')
+        return redirect(url_for('note_detail', nid=nid))
     return send_from_directory(UPLOAD_FOLDER,note['file_path'],as_attachment=True,download_name=note['file_name'])
 
 @app.route('/preview/<int:nid>')
