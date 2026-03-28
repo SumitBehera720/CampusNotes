@@ -279,9 +279,12 @@ img { max-width: 100%; }
 .btn-accent { background: var(--primary-2); color: #fff; }
 .btn-accent:hover { background: #d97706; transform: translateY(-1px); cursor: pointer !important; }
 .btn-outline {
-  background: transparent; border: 1.5px solid var(--text-primary); color: var(--text-primary);
+  background: #ffffff; 
+  border: 2px solid #222222 !important; 
+  color: #222222 !important;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
 }
-.btn-outline:hover { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); cursor: pointer !important; }
+.btn-outline:hover { background: #222222; color: #ffffff !important; border-color: #222222; cursor: pointer !important; }
 .btn-success { background: var(--primary-1); color: #fff; }
 .btn-success:hover { background: #16a34a; cursor: pointer !important; }
 .btn-danger { background: #ef4444; color: #fff; }
@@ -291,7 +294,12 @@ img { max-width: 100%; }
 .btn-lg { padding: 12px 28px; font-size: 1rem; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed !important; }
 .w-full { width: 100% !important; display: flex !important; justify-content: center !important; }
-.btn.saved, .action-btn.saved { background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; }
+.btn.saved, .action-btn.saved { 
+  background: #424874 !important; 
+  color: #ffffff !important; 
+  border: 2px solid #424874 !important; 
+  box-shadow: 0 4px 12px rgba(66, 72, 116, 0.3) !important;
+}
 
 /* ===================== CARDS ===================== */
 .card, .dashboard-section, .auth-card, .form-card, .detail-card, .table-card, .stat-card {
