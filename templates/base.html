@@ -88,7 +88,7 @@
                     {% if current_user['profile_picture'] %}
                     <button class="user-avatar" onclick="toggleUserMenu()"
                         style="padding:0; overflow:hidden; border:none;">
-                        <img src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}"
+                        <img src="{{ get_avatar_url(current_user['profile_picture']) }}"
                             alt="{{ user_initials }}"
                             style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
                     </button>
@@ -100,7 +100,7 @@
                     <div class="user-dropdown" id="userDropdown">
                         <div class="user-info">
                             {% if current_user['profile_picture'] %}
-                            <img src="{{ url_for('serve_avatar', filename=current_user['profile_picture']) }}"
+                            <img src="{{ get_avatar_url(current_user['profile_picture']) }}"
                                 alt="{{ user_initials }}"
                                 style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">
                             {% else %}

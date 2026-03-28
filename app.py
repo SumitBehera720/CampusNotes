@@ -411,16 +411,23 @@ def inject():
         if u and u['name']:
             parts = u['name'].split()
             user_initials = ''.join(p[0].upper() for p in parts[:2] if p)
+        
+        def get_avatar_url(pp):
+            if not pp: return ''
+            if pp.startswith('data:'): return pp
+            return url_for('serve_avatar', filename=pp)
+
         return dict(current_user=u, unread_notifs=unread, nav_notifs=nav_notifs,
                     is_auth=is_auth, is_admin=is_admin, user_initials=user_initials,
                     is_exam_season=datetime.now().month in EXAM_MONTHS,
+                    get_avatar_url=get_avatar_url,
                     badge_types=BADGE_TYPES,
                     config={'BRANCHES':BRANCHES,'SEMESTERS':SEMESTERS,'NOTE_TYPES':NOTE_TYPES,'DIFFICULTY':DIFFICULTY})
     except Exception as e:
         print(f"Error in context processor: {e}")
         return dict(current_user=None, unread_notifs=0, nav_notifs=[],
                     is_auth=False, is_admin=False, user_initials='',
-                    is_exam_season=False, badge_types=BADGE_TYPES, config={})
+                    is_exam_season=False, badge_types=BADGE_TYPES, config={}, get_avatar_url=lambda pp: '')
 
 @app.template_filter('initials')
 def tpl_initials(n):
@@ -930,11 +937,16 @@ def profile():
         if 'profile_picture' in request.files:
             pic = request.files['profile_picture']
             if pic and pic.filename:
+                import base64
                 ext = pic.filename.rsplit('.', 1)[1].lower() if '.' in pic.filename else ''
                 if ext in ALLOWED_AVATAR_EXT:
-                    fname = f"{uuid.uuid4().hex}.{ext}"
-                    pic.save(os.path.join(AVATAR_FOLDER, fname))
-                    db.execute("UPDATE users SET profile_picture=? WHERE id=?", (fname, u['id']))
+                    pic_data = pic.read()
+                    if len(pic_data) > 2 * 1024 * 1024:
+                        flash('Profile picture must be under 2MB.','error')
+                        return redirect(url_for('profile'))
+                    encoded = base64.b64encode(pic_data).decode('utf-8')
+                    data_uri = f"data:image/{ext};base64,{encoded}"
+                    db.execute("UPDATE users SET profile_picture=? WHERE id=?", (data_uri, u['id']))
         db.execute("UPDATE users SET name=?,college=?,branch=?,semester=?,bio=? WHERE id=?",
                    (name,college,branch,int(semester) if semester else None,bio,u['id']))
         db.commit(); flash('Profile updated!','success'); return redirect(url_for('profile'))
@@ -944,10 +956,19 @@ def profile():
 @app.route('/avatar/<filename>')
 def serve_avatar(filename):
     from flask import make_response
+    import os
+    file_path = os.path.join(AVATAR_FOLDER, filename)
+    if not os.path.exists(file_path):
+        svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+            <rect width="100" height="100" fill="#e5e7eb"/>
+            <path d="M50 50C61.0457 50 70 41.0457 70 30C70 18.9543 61.0457 10 50 10C38.9543 10 30 18.9543 30 30C30 41.0457 38.9543 50 50 50ZM50 55C33.3333 55 0 63.3333 0 80V90H100V80C100 63.3333 66.6667 55 50 55Z" fill="#9ca3af"/>
+        </svg>'''
+        resp = make_response(svg)
+        resp.headers['Content-Type'] = 'image/svg+xml'
+        resp.headers['Cache-Control'] = 'public, max-age=86400'
+        return resp
     resp = make_response(send_from_directory(AVATAR_FOLDER, filename))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
     return resp
 
 # ─── SOCIAL & PROFILES ──────────────────────────────────────────────

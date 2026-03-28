@@ -34,7 +34,7 @@
           <td style="padding:12px 16px; white-space:nowrap;">
             <div style="display:flex; align-items:center; gap:10px;">
               {% if user['profile_picture'] %}
-              <img src="{{ url_for('serve_avatar', filename=user['profile_picture']) }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+              <img src="{{ get_avatar_url(user['profile_picture']) }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
               {% else %}
               <div class="avatar-xs" data-bg="{{ user['avatar_color'] }}" style="flex-shrink:0;">{{ user.initials }}</div>
               {% endif %}

@@ -29,7 +29,7 @@
             <td>
               <div style="display:flex; align-items:center; gap:12px;">
                 {% if u.profile_picture %}
-                <img src="{{ url_for('serve_avatar', filename=u.profile_picture) }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+                <img src="{{ get_avatar_url(u.profile_picture) }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
                 {% else %}
                 <div class="avatar-xs" data-bg="{{ u.avatar_color }}">{{ u.name | initials }}</div>
                 {% endif %}

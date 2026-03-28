@@ -161,7 +161,7 @@
       <div class="detail-card-body" style="display:flex;gap:12px;align-items:center">
         <div style="position: relative; width: 48px; height: 48px; flex-shrink: 0;">
           {% if uploader.profile_picture %}
-          <img src="{{ url_for('serve_avatar', filename=uploader.profile_picture) }}" 
+          <img src="{{ get_avatar_url(uploader.profile_picture) }}" 
                style="width:48px;height:48px;border-radius:50%;object-fit:cover;"
                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           <div class="user-avatar-lg" data-bg="{{ uploader['avatar_color'] }}" style="display:none; width:48px; height:48px; font-size:1rem">{{ uploader['name'] | initials }}</div>

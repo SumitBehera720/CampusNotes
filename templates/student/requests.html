@@ -32,7 +32,7 @@
       <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:16px;">
         <div style="display:flex; align-items:center; gap:8px;">
           {% if req['profile_picture'] %}
-          <img src="{{ url_for('serve_avatar', filename=req['profile_picture']) }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+          <img src="{{ get_avatar_url(req['profile_picture']) }}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
           {% else %}
           <div class="avatar-xs" style="--avatar-bg: {{ req['avatar_color'] }}; background-color: var(--avatar-bg); width:28px; height:28px; font-size:12px;">{{ req['name'] | initials }}</div>
           {% endif %}
