@@ -189,6 +189,7 @@
                     knowledge hub. Share, discover, and excel together.</p>
             </div>
             <div class="footer-links">
+                {% if request.endpoint not in ['login', 'register', 'forgot_password', 'reset_password'] %}
                 <div>
                     <h4>Platform</h4>
                     <a href="{{ url_for('browse') }}">Browse Notes</a>
@@ -202,12 +203,13 @@
                     <a href="{{ url_for('register') }}">Create Account</a>
                     <a href="{{ url_for('login') }}">Sign In</a>
                 </div>
+                {% endif %}
                 <div>
                     <h4>Contact</h4>
                     <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Have questions or
                         feedback?</p>
-                    <a href="mailto:beherasumit772@gmail.com"
-                        style="color: var(--primary); font-weight: 600;">beherasumit772@gmail.com</a>
+                    <a href="mailto:support4campusnotes@gmail.com"
+                        style="color: var(--primary); font-weight: 600;">support4campusnotes@gmail.com</a>
                 </div>
             </div>
         </div>
