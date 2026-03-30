@@ -127,7 +127,7 @@
 
   <!-- SIDEBAR -->
   <aside class="detail-sidebar">
-    <div style="position:sticky; top:80px; padding-top:100px;">
+    <div style="position:sticky; top:80px; padding-top:20px;">
       <div class="detail-card">
         <div class="detail-card-body">
             {% if is_auth %}
@@ -135,13 +135,20 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download {{ note['file_ext'] | upper }}
             </a>
-            <button data-id="{{ note['id'] }}" onclick="toggleSave(this.dataset.id, this)" class="btn btn-outline w-full {{ 'saved' if is_saved }}" style="gap:8px; margin-bottom:16px; padding:12px 0;">
+            <button 
+              id="saveBtn"
+              data-id="{{ note['id'] }}" 
+              onclick="toggleSave(this.dataset.id, this)" 
+              aria-pressed="{{ 'true' if is_saved else 'false' }}"
+              class="btn w-full {{ 'saved' if is_saved else 'btn-outline' }}" 
+              style="gap:8px; margin-bottom:16px; padding:12px 0; font-weight:600; font-size:0.9rem; transition: all 0.25s ease;"
+            >
               {% if is_saved %}
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" id="save" style="vertical-align:middle;"><path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13.131a1 1 0 0 1-1.555.832l-3.89-2.593a1 1 0 0 0-1.11 0l-3.89 2.593A1 1 0 0 1 6 18.131V5Z"></path></svg>
-              Saved to Bookmarks
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13.131a1 1 0 0 1-1.555.832l-3.89-2.593a1 1 0 0 0-1.11 0l-3.89 2.593A1 1 0 0 1 6 18.131V5Z"></path></svg>
+              <span>Saved to Bookmarks</span>
               {% else %}
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" id="save" width="20" height="20" fill="currentColor" style="vertical-align:middle;"><path d="M23 5H9C7.346 5 6 6.346 6 8v19a1 1 0 0 0 1.614.789L16 21.267l8.386 6.522a.996.996 0 0 0 1.053.109A1 1 0 0 0 26 27V8c0-1.654-1.346-3-3-3zm1 19.956-7.386-5.745a.999.999 0 0 0-1.228-.001L8 24.956V8c0-.551.449-1 1-1h14c.551 0 1 .449 1 1v16.956z"></path></svg>
-              Save to Bookmarks
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="20" height="20" fill="currentColor"><path d="M23 5H9C7.346 5 6 6.346 6 8v19a1 1 0 0 0 1.614.789L16 21.267l8.386 6.522a.996.996 0 0 0 1.053.109A1 1 0 0 0 26 27V8c0-1.654-1.346-3-3-3zm1 19.956-7.386-5.745a.999.999 0 0 0-1.228-.001L8 24.956V8c0-.551.449-1 1-1h14c.551 0 1 .449 1 1v16.956z"></path></svg>
+              <span>Save to Bookmarks</span>
               {% endif %}
             </button>
             {% else %}
@@ -191,12 +198,10 @@
       {% endif %}
 
       <!-- Compare Card -->
-      <div class="detail-card" style="margin-top:16px; padding:0; overflow:hidden; border: 1px solid var(--border); box-shadow:none;">
-        <a href="{{ url_for('compare_notes', n1=note['id']) }}" class="btn btn-outline w-full" style="border:none !important; padding:12px 0; display:flex; justify-content:center; align-items:center; gap:8px; border-radius:0; box-shadow:none !important;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-          Compare with Another
-        </a>
-      </div>
+      <a href="{{ url_for('compare_notes', n1=note['id']) }}" class="btn btn-outline w-full" style="margin-top:8px; margin-bottom:0; padding:10px 0; gap:8px; font-size:0.85rem;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        Compare with Another
+      </a>
 
       {% if is_auth and current_user['id'] != note['uploaded_by'] %}
       <div style="margin-top:16px">
@@ -231,11 +236,61 @@
 </div>
 </div>
 
+{% if is_auth %}
+<!-- Mobile Sticky Action Bar -->
+<div class="mobile-note-actions" id="mobileNoteBar">
+  <a href="{{ url_for('download_note', nid=note['id']) }}" class="mobile-action-btn mobile-action-download">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Download
+  </a>
+  <button
+    class="mobile-action-btn mobile-action-save {{ 'saved' if is_saved }}"
+    data-id="{{ note['id'] }}"
+    aria-pressed="{{ 'true' if is_saved else 'false' }}"
+    onclick="toggleSave(this.dataset.id, this); document.getElementById('saveBtn').className = this.className; document.getElementById('saveBtn').innerHTML = this.innerHTML;"
+  >
+    {% if is_saved %}
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13.131a1 1 0 0 1-1.555.832l-3.89-2.593a1 1 0 0 0-1.11 0l-3.89 2.593A1 1 0 0 1 6 18.131V5Z"></path></svg>
+    Saved
+    {% else %}
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="currentColor"><path d="M23 5H9C7.346 5 6 6.346 6 8v19a1 1 0 0 0 1.614.789L16 21.267l8.386 6.522a.996.996 0 0 0 1.053.109A1 1 0 0 0 26 27V8c0-1.654-1.346-3-3-3zm1 19.956-7.386-5.745a.999.999 0 0 0-1.228-.001L8 24.956V8c0-.551.449-1 1-1h14c.551 0 1 .449 1 1v16.956z"></path></svg>
+    Save
+    {% endif %}
+  </button>
+</div>
+{% endif %}
+
 <script>
   document.body.dataset.noteId="{{ note['id'] }}";
-  // Apply dynamic styles (helper if not already in base.html)
   document.querySelectorAll('[data-bg]').forEach(function(el) {
     el.style.backgroundColor = el.dataset.bg;
   });
+
+  // Keep sidebar save button and mobile bar in sync
+  (function() {
+    var sidebarBtn = document.getElementById('saveBtn');
+    var mobileBar  = document.querySelector('.mobile-action-save');
+    if (!sidebarBtn || !mobileBar) return;
+
+    function syncBtns(source, target) {
+      target.className = source.className;
+      target.setAttribute('aria-pressed', source.getAttribute('aria-pressed'));
+      target.innerHTML  = source.innerHTML;
+      // restore the onclick so it also syncs back
+      var noteId = source.dataset.id || target.dataset.id;
+      target.setAttribute('data-id', noteId);
+    }
+
+    // Wrap original onclick to keep both in sync
+    var origToggle = window.toggleSave;
+    window.toggleSave = function(noteId, btn) {
+      origToggle(noteId, btn);
+      // After a short delay the UI will be updated by origToggle, then mirror it
+      setTimeout(function() {
+        if (btn === sidebarBtn) syncBtns(sidebarBtn, mobileBar);
+        else                    syncBtns(mobileBar, sidebarBtn);
+      }, 800);
+    };
+  })();
 </script>
 {% endblock %}

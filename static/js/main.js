@@ -27,15 +27,35 @@ function markAllRead() {
 }
 
 // ====== Save / Bookmark ======
+const SAVE_ICON_FILLED = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13.131a1 1 0 0 1-1.555.832l-3.89-2.593a1 1 0 0 0-1.11 0l-3.89 2.593A1 1 0 0 1 6 18.131V5Z"></path></svg>`;
+const SAVE_ICON_OUTLINE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="currentColor"><path d="M23 5H9C7.346 5 6 6.346 6 8v19a1 1 0 0 0 1.614.789L16 21.267l8.386 6.522a.996.996 0 0 0 1.053.109A1 1 0 0 0 26 27V8c0-1.654-1.346-3-3-3zm1 19.956-7.386-5.745a.999.999 0 0 0-1.228-.001L8 24.956V8c0-.551.449-1 1-1h14c.551 0 1 .449 1 1v16.956z"></path></svg>`;
+
+function updateSaveBtn(btn, saved) {
+  btn.classList.toggle('saved', saved);
+  btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
+  // Handle full-width detail-page button or icon-only card button
+  const isFullBtn = btn.classList.contains('btn');
+  if (isFullBtn) {
+    btn.innerHTML = saved
+      ? SAVE_ICON_FILLED + ' <span>Saved to Bookmarks</span>'
+      : SAVE_ICON_OUTLINE + ' <span>Save to Bookmarks</span>';
+  } else {
+    // icon-only action-btn on note cards — add a tiny label
+    btn.innerHTML = saved ? SAVE_ICON_FILLED : SAVE_ICON_OUTLINE;
+    btn.title = saved ? 'Remove from bookmarks' : 'Save to bookmarks';
+  }
+}
+
 function toggleSave(noteId, btn) {
+  btn.disabled = true;
   fetch(`/save/${noteId}`, { method: 'POST' })
     .then(r => r.json())
     .then(data => {
-      btn.classList.toggle('saved', data.saved);
-      btn.title = data.saved ? 'Remove bookmark' : 'Bookmark';
-      btn.textContent = data.saved ? '🔖' : '🔖';
+      updateSaveBtn(btn, data.saved);
       showToast(data.saved ? 'Note saved to bookmarks!' : 'Removed from bookmarks', data.saved ? 'success' : 'info');
-    });
+    })
+    .catch(() => showToast('Something went wrong. Try again.', 'error'))
+    .finally(() => { btn.disabled = false; });
 }
 
 // ====== Star Rating ======
