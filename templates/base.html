@@ -140,6 +140,7 @@
             <a href="{{ url_for('browse') }}">📚 Browse Notes</a>
             <a href="{{ url_for('leaderboard') }}">🏆 Leaderboard</a>
             <a href="{{ url_for('note_requests') }}">📋 Requests</a>
+            <a href="{{ url_for('compare_notes') }}">⚖️ Compare Notes</a>
             {% if is_auth %}
             {% if not is_admin %}
             <a href="{{ url_for('upload') }}">📤 Upload</a>

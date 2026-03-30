@@ -715,14 +715,15 @@ def download_note(nid):
     db=get_db(); u=cur_user()
     note=db.execute("SELECT * FROM notes WHERE id=?",(nid,)).fetchone()
     if not note or note['status']!='approved': abort(403)
+    file_path = os.path.join(UPLOAD_FOLDER, note['file_path'])
+    if not os.path.exists(file_path):
+        flash('⚠️ File Not Found — This note was uploaded during a previous hosting session. On free-tier cloud hosting (like Render), uploaded files are deleted when the server restarts. Please ask the uploader to re-upload the file.', 'error')
+        return redirect(url_for('note_detail', nid=nid))
     db.execute("UPDATE notes SET downloads=downloads+1 WHERE id=?",(nid,))
     db.execute("INSERT INTO download_history(user_id,note_id) VALUES(?,?)",(u['id'],nid))
     db.commit()
     check_badges(db, note['uploaded_by'])
-    if not os.path.exists(os.path.join(UPLOAD_FOLDER, note['file_path'])):
-        flash('Sorry, the file was not found on the server. It may have been deleted by the cloud hosting provider.', 'error')
-        return redirect(url_for('note_detail', nid=nid))
-    return send_from_directory(UPLOAD_FOLDER,note['file_path'],as_attachment=True,download_name=note['file_name'])
+    return send_from_directory(UPLOAD_FOLDER, note['file_path'], as_attachment=True, download_name=note['file_name'])
 
 @app.route('/preview/<int:nid>')
 @login_req
@@ -730,7 +731,10 @@ def preview_note(nid):
     db=get_db()
     note=db.execute("SELECT * FROM notes WHERE id=?",(nid,)).fetchone()
     if not note or note['status']!='approved': abort(403)
-    return send_from_directory(UPLOAD_FOLDER,note['file_path'])
+    file_path = os.path.join(UPLOAD_FOLDER, note['file_path'])
+    if not os.path.exists(file_path):
+        abort(404)  # Let the front-end HEAD check detect this
+    return send_from_directory(UPLOAD_FOLDER, note['file_path'])
 
 # ─── SAVE / RATE / COMMENT / REPORT ─────────────────────────────────
 @app.route('/save/<int:nid>',methods=['POST'])

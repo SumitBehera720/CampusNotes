@@ -39,13 +39,59 @@
           {% endif %}
           
           {% if note['file_ext'] == 'pdf' %}
-          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1;" id="iframeLoader">
+          <!-- Loader shown until iframe loads or error detected -->
+          <div id="iframeLoader" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:1; gap:12px;">
             <style>@keyframes spinLoader { 100% { transform: rotate(360deg); } }</style>
-            <div style="width: 40px; height: 40px; border: 4px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: spinLoader 1s linear infinite;"></div>
+            <div style="width:40px;height:40px;border:4px solid var(--primary);border-top-color:transparent;border-radius:50%;animation:spinLoader 1s linear infinite;"></div>
+            <span style="font-size:0.8rem;color:var(--text-secondary);">Loading preview…</span>
           </div>
-          <iframe src="{{ url_for('preview_note', nid=note['id']) }}" title="Preview" loading="lazy" style="position: relative; z-index: 2; opacity: 0; transition: opacity 0.4s;" onload="document.getElementById('iframeLoader').style.display='none'; this.style.opacity='1';"></iframe>
+          <!-- Unavailable fallback (hidden by default) -->
+          <div id="previewUnavailable" style="display:none; padding:40px 20px; text-align:center;">
+            <div style="font-size:2.5rem; margin-bottom:12px;">📄</div>
+            <h3 style="margin:0 0 8px 0; font-size:1rem;">Preview Unavailable</h3>
+            <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:16px;">This file was uploaded on a previous hosting session and is no longer stored on the server. Please contact the uploader.</p>
+          </div>
+          <iframe 
+            id="previewIframe"
+            data-src="{{ url_for('preview_note', nid=note['id']) }}"
+            title="Preview" 
+            style="position:relative; z-index:2; opacity:0; transition:opacity 0.4s; width:100%; height:100%; border:none;"
+            onload="document.getElementById('iframeLoader').style.display='none'; this.style.opacity='1';"
+            onerror="document.getElementById('iframeLoader').style.display='none'; document.getElementById('previewUnavailable').style.display='block'; this.style.display='none';">
+          </iframe>
+          <script>
+            (function() {
+              var iframe = document.getElementById('previewIframe');
+              var loader = document.getElementById('iframeLoader');
+              var unavailable = document.getElementById('previewUnavailable');
+              var src = iframe.getAttribute('data-src');
+              // Test if the file is accessible before loading the iframe
+              fetch(src, { method: 'HEAD' })
+                .then(function(r) {
+                  if (r.ok) {
+                    iframe.src = src;
+                    // Timeout fallback — if iframe hasn't loaded in 20 s, show unavailable
+                    var timeout = setTimeout(function() {
+                      if (iframe.style.opacity === '0') {
+                        loader.style.display = 'none';
+                        unavailable.style.display = 'block';
+                      }
+                    }, 20000);
+                    iframe.addEventListener('load', function() { clearTimeout(timeout); });
+                  } else {
+                    loader.style.display = 'none';
+                    unavailable.style.display = 'block';
+                  }
+                })
+                .catch(function() {
+                  loader.style.display = 'none';
+                  unavailable.style.display = 'block';
+                });
+            })();
+          </script>
           {% elif note['file_ext'] in ['png', 'jpg', 'jpeg'] %}
-          <img src="{{ url_for('preview_note', nid=note['id']) }}" alt="Preview" style="max-height:480px;object-fit:contain;width:100%">
+          <img src="{{ url_for('preview_note', nid=note['id']) }}" alt="Preview" style="max-height:480px;object-fit:contain;width:100%"
+               onerror="this.replaceWith(Object.assign(document.createElement('div'), {innerHTML: '<div style=\'padding:40px;text-align:center\'><div style=\'font-size:2rem\'>🖼️</div><p style=\'color:var(--text-secondary)\'>Image unavailable</p></div>'}))">
           {% else %}
           <div class="preview-placeholder">
             <div class="file-icon">{% if note['file_ext'] in ['ppt','pptx'] %}📊{% elif note['file_ext'] in ['doc','docx'] %}📝{% else %}📁{% endif %}</div>
@@ -56,6 +102,7 @@
         </div>
       </div>
     </div>
+
 
     <!-- Description & Tags -->
     {% if note['description'] or note['tags'] %}

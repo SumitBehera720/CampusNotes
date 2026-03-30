@@ -1217,7 +1217,7 @@ tr:hover td { background: var(--bg-primary); }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-bottom: 4px;
+  padding: 0;
   flex-shrink: 0;
 }
 .compare-vs-circle {
@@ -1345,7 +1345,12 @@ tr:hover td { background: var(--bg-primary); }
   flex: 1;
   min-height: 48px;
 }
-.compare-note-actions { display: flex; gap: 10px; }
+.compare-note-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+.compare-note-actions .btn { flex: 1; justify-content: center; text-align: center; }
 .compare-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
 .compare-empty-state { text-align: center; padding: 60px 20px; animation: fadeUp 0.5s ease; }
 
@@ -1478,7 +1483,8 @@ tr:hover td { background: var(--bg-primary); }
     gap: 16px;
   }
   .compare-vs-divider {
-    padding: 0;
+    flex-direction: row;
+    padding: 4px 0;
   }
   .compare-vs-badge {
     width: 40px; height: 40px;
@@ -1487,9 +1493,19 @@ tr:hover td { background: var(--bg-primary); }
   .compare-search-row {
     flex-direction: column;
     gap: 12px;
+    align-items: stretch;
+  }
+  .compare-search-box {
+    width: 100%;
   }
   .compare-vs {
-    padding: 0;
+    order: 2;
+    flex-direction: row;
+    justify-content: center;
+    padding: 4px 0;
+  }
+  .compare-label {
+    justify-content: flex-start;
   }
   /* Public profile layout */
   .profile-header .container,
