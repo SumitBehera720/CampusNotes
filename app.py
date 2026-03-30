@@ -25,6 +25,20 @@ if USE_PG:
 else:
     pg_pool = None
 
+# Supabase Storage Support
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        from supabase import create_client
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print(" Supabase client initialized")
+    except Exception as e:
+        print(f" Supabase init error: {e}")
+        supabase = None
+else:
+    supabase = None
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'campusnotes-super-secret-2025-prod')
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
@@ -689,9 +703,27 @@ def upload():
             flash('File type not allowed.','error'); return render_template('notes/upload.html')
         ext=file.filename.rsplit('.',1)[1].lower()
         uname=f"{uuid.uuid4().hex}.{ext}"
-        save_path=os.path.join(UPLOAD_FOLDER,uname)
-        file.save(save_path)
-        fsz=os.path.getsize(save_path)
+        
+        # Upload to Supabase Storage if configured
+        if supabase:
+            try:
+                # Read file data
+                file_data = file.read()
+                fsz = len(file_data)
+                # Upload to 'notes' bucket
+                supabase.storage.from_('notes').upload(
+                    path=uname,
+                    file=file_data,
+                    file_options={"content-type": file.content_type}
+                )
+            except Exception as e:
+                flash(f'Cloud upload failed: {e}','error'); return render_template('notes/upload.html')
+        else:
+            # Fallback to local if no Supabase (Note: will be lost on Render restart)
+            save_path=os.path.join(UPLOAD_FOLDER,uname)
+            file.save(save_path)
+            fsz=os.path.getsize(save_path)
+        
         db=get_db()
         db.execute("INSERT INTO notes(title,subject,branch,semester,note_type,difficulty,description,tags,college,file_path,file_name,file_size,file_ext,uploaded_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                    (title,subject,branch,int(semester),note_type,difficulty,description,tags,college,uname,file.filename,fsz,ext,u['id']))
@@ -715,14 +747,26 @@ def download_note(nid):
     db=get_db(); u=cur_user()
     note=db.execute("SELECT * FROM notes WHERE id=?",(nid,)).fetchone()
     if not note or note['status']!='approved': abort(403)
-    file_path = os.path.join(UPLOAD_FOLDER, note['file_path'])
-    if not os.path.exists(file_path):
-        flash('⚠️ File Not Found — This note was uploaded during a previous hosting session. On free-tier cloud hosting (like Render), uploaded files are deleted when the server restarts. Please ask the uploader to re-upload the file.', 'error')
-        return redirect(url_for('note_detail', nid=nid))
+    
+    # Track stats
     db.execute("UPDATE notes SET downloads=downloads+1 WHERE id=?",(nid,))
     db.execute("INSERT INTO download_history(user_id,note_id) VALUES(?,?)",(u['id'],nid))
     db.commit()
     check_badges(db, note['uploaded_by'])
+    
+    # Serve from Supabase if possible
+    if supabase:
+        try:
+            res = supabase.storage.from_('notes').get_public_url(note['file_path'])
+            # We redirect to the public URL for download
+            return redirect(res)
+        except: pass
+        
+    # Local fallback
+    file_path = os.path.join(UPLOAD_FOLDER, note['file_path'])
+    if not os.path.exists(file_path):
+        flash('⚠️ File Not Found — This note was uploaded during a previous hosting session and is no longer on the server. Please contact the uploader.', 'error')
+        return redirect(url_for('note_detail', nid=nid))
     return send_from_directory(UPLOAD_FOLDER, note['file_path'], as_attachment=True, download_name=note['file_name'])
 
 @app.route('/preview/<int:nid>')
@@ -731,9 +775,18 @@ def preview_note(nid):
     db=get_db()
     note=db.execute("SELECT * FROM notes WHERE id=?",(nid,)).fetchone()
     if not note or note['status']!='approved': abort(403)
+    
+    # Serve from Supabase if possible
+    if supabase:
+        try:
+            res = supabase.storage.from_('notes').get_public_url(note['file_path'])
+            return redirect(res)
+        except: pass
+        
+    # Local fallback
     file_path = os.path.join(UPLOAD_FOLDER, note['file_path'])
     if not os.path.exists(file_path):
-        abort(404)  # Let the front-end HEAD check detect this
+        abort(404)
     return send_from_directory(UPLOAD_FOLDER, note['file_path'])
 
 # ─── SAVE / RATE / COMMENT / REPORT ─────────────────────────────────
@@ -934,8 +987,16 @@ def delete_my_note(nid):
     db=get_db(); u=cur_user()
     note=db.execute("SELECT * FROM notes WHERE id=?",(nid,)).fetchone()
     if not note or note['uploaded_by']!=u['id']: abort(403)
+    
+    # Remove from Supabase if possible
+    if supabase:
+        try: supabase.storage.from_('notes').remove([note['file_path']])
+        except: pass
+    
+    # Remove local fallback
     try: os.remove(os.path.join(UPLOAD_FOLDER,note['file_path']))
     except: pass
+    
     db.execute("DELETE FROM notes WHERE id=?",(nid,)); db.commit()
     flash('Note deleted.','success'); return redirect(url_for('my_notes'))
 
@@ -1204,8 +1265,16 @@ def admin_toggle_verified(uid):
 def admin_delete_note(nid):
     db=get_db(); note=db.execute("SELECT * FROM notes WHERE id=?",(nid,)).fetchone()
     if not note: abort(404)
+    
+    # Remove from Supabase if possible
+    if supabase:
+        try: supabase.storage.from_('notes').remove([note['file_path']])
+        except: pass
+        
+    # Remove local fallback
     try: os.remove(os.path.join(UPLOAD_FOLDER,note['file_path']))
     except: pass
+    
     db.execute("DELETE FROM notes WHERE id=?",(nid,)); db.commit()
     flash('Note deleted.','success'); return redirect(url_for('admin_notes'))
 
