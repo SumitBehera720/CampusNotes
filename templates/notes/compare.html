@@ -213,16 +213,18 @@
 
         {% macro bar_row(label, v1, v2) %}
         {% set mx = [v1, v2] | max %}
+        {% set w1 = (v1 / mx * 100) | int if mx > 0 else 50 %}
+        {% set w2 = (v2 / mx * 100) | int if mx > 0 else 50 %}
         <div class="compare-bar-row">
           <div class="compare-bar-label">{{ label }}</div>
           <div class="compare-dual-bar">
             <div class="compare-dual-half compare-half-left">
-              <div class="compare-dual-fill-left" style="width:{% if mx > 0 %}{{ (v1/mx*100)|int }}{% else %}50{% endif %}%">
+              <div class="compare-dual-fill-left" data-fill="{{ w1 }}">
                 <span>{{ v1 }}</span>
               </div>
             </div>
             <div class="compare-dual-half compare-half-right">
-              <div class="compare-dual-fill-right" style="width:{% if mx > 0 %}{{ (v2/mx*100)|int }}{% else %}50{% endif %}%">
+              <div class="compare-dual-fill-right" data-fill="{{ w2 }}">
                 <span>{{ v2 }}</span>
               </div>
             </div>
@@ -258,6 +260,11 @@
 </div><!-- /container -->
 
 <script>
+// Apply comparison bar widths
+document.querySelectorAll('[data-fill]').forEach(el => {
+  el.style.width = el.dataset.fill + '%';
+});
+
 function setupCompareSearch(inputId, suggestionsId, hiddenId) {
   const input = document.getElementById(inputId);
   const suggestions = document.getElementById(suggestionsId);
