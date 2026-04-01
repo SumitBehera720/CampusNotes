@@ -110,7 +110,12 @@
             <div class="compare-stat-icon">👤</div>
             <div>
               <div class="compare-stat-value" style="font-size:0.82rem;">
-                <a href="{{ url_for('public_profile', uid=n1.uploaded_by) }}" style="text-decoration:none;color:inherit;">{{ uploaders[n1.uploaded_by].name }}</a>
+                {% set up1 = uploaders.get(n1['uploaded_by']) or uploaders.get(n1.uploaded_by) %}
+                {% if up1 %}
+                <a href="{{ url_for('public_profile', uid=n1['uploaded_by']) }}" style="text-decoration:none;color:inherit;">{{ up1['name'] }}</a>
+                {% else %}
+                Unknown
+                {% endif %}
               </div>
               <div class="compare-stat-label">Uploader</div>
             </div>
@@ -179,7 +184,12 @@
             <div class="compare-stat-icon">👤</div>
             <div>
               <div class="compare-stat-value" style="font-size:0.82rem;">
-                <a href="{{ url_for('public_profile', uid=n2.uploaded_by) }}" style="text-decoration:none;color:inherit;">{{ uploaders[n2.uploaded_by].name }}</a>
+                {% set up2 = uploaders.get(n2['uploaded_by']) or uploaders.get(n2.uploaded_by) %}
+                {% if up2 %}
+                <a href="{{ url_for('public_profile', uid=n2['uploaded_by']) }}" style="text-decoration:none;color:inherit;">{{ up2['name'] }}</a>
+                {% else %}
+                Unknown
+                {% endif %}
               </div>
               <div class="compare-stat-label">Uploader</div>
             </div>

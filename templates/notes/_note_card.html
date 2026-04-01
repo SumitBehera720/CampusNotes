@@ -44,16 +44,17 @@
 
   <div class="note-card-bottom">
     <div class="note-stats">
-      <span title="Rating">⭐ {{ (note.avg_rating or 0) | round(1) }}</span>
+      <span title="Rating">⭐ {{ (note.avg_rating | default(0) or 0) | round(1) }}</span>
       <span title="File Size">💾 {{ note.file_size | file_size_str }}</span>
     </div>
     <div class="note-actions">
+      {% set note_is_saved = note['id'] in saved_ids if saved_ids is defined else false %}
       {% if is_auth %}
-      <button class="action-btn toggle-save {{ 'saved' if note.is_saved }}" 
-              data-id="{{ note.id }}" 
+      <button class="action-btn toggle-save {{ 'saved' if note_is_saved }}" 
+              data-id="{{ note['id'] }}" 
               onclick="toggleSave(this.dataset.id, this)"
               title="Save Note">
-        {% if note.is_saved %}
+        {% if note_is_saved %}
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24" id="save"><path d="M6 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13.131a1 1 0 0 1-1.555.832l-3.89-2.593a1 1 0 0 0-1.11 0l-3.89 2.593A1 1 0 0 1 6 18.131V5Z"></path></svg>
         {% else %}
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" id="save" width="18" height="18" fill="currentColor"><path d="M23 5H9C7.346 5 6 6.346 6 8v19a1 1 0 0 0 1.614.789L16 21.267l8.386 6.522a.996.996 0 0 0 1.053.109A1 1 0 0 0 26 27V8c0-1.654-1.346-3-3-3zm1 19.956-7.386-5.745a.999.999 0 0 0-1.228-.001L8 24.956V8c0-.551.449-1 1-1h14c.551 0 1 .449 1 1v16.956z"></path></svg>

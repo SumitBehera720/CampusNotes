@@ -16,10 +16,11 @@ if USE_PG:
     # Create a connection pool — reuses connections instead of creating one per request
     pg_pool = ConnectionPool(
         DATABASE_URL,
-        min_size=2,
+        min_size=1,
         max_size=5,
         kwargs={"row_factory": dict_row, "autocommit": False},
-        open=True
+        open=False,
+        reconnect_timeout=30
     )
     print(" PostgreSQL connection pool created")
 else:
@@ -99,20 +100,21 @@ class PgCursorWrapper:
         # Translate SQLite functions to PostgreSQL
         sql = sql.replace("datetime('now')", "NOW()")
         sql = sql.replace("date(uploaded_at)", "uploaded_at::date")
-        # Translate SQLite INSERT OR to PostgreSQL ON CONFLICT
-        if 'INSERT OR IGNORE' in sql.upper():
-            sql = sql.replace('INSERT OR IGNORE', 'INSERT')
-            sql = sql.replace('insert or ignore', 'INSERT')
-            sql += ' ON CONFLICT DO NOTHING'
-        if 'INSERT OR REPLACE' in sql.upper():
-            sql = sql.replace('INSERT OR REPLACE', 'INSERT')
-            sql = sql.replace('insert or replace', 'INSERT')
-            if 'ratings' in sql.lower():
-                sql += ' ON CONFLICT (user_id, note_id) DO UPDATE SET value = EXCLUDED.value'
-            else:
-                sql += ' ON CONFLICT DO NOTHING'
+        sql = sql.replace("date(downloaded_at)", "downloaded_at::date")
+        sql = sql.replace("date(created_at)", "created_at::date")
         # Case-insensitive LIKE for PostgreSQL
         sql = sql.replace(' LIKE ', ' ILIKE ')
+        # Translate SQLite INSERT OR to PostgreSQL ON CONFLICT
+        sql_upper = sql.upper().strip()
+        if sql_upper.startswith('INSERT') and 'OR IGNORE' in sql_upper:
+            sql = sql.replace('OR IGNORE ', '').replace('or ignore ', '')
+            sql = sql.rstrip() + ' ON CONFLICT DO NOTHING'
+        elif sql_upper.startswith('INSERT') and 'OR REPLACE' in sql_upper:
+            sql = sql.replace('OR REPLACE ', '').replace('or replace ', '')
+            if 'ratings' in sql.lower():
+                sql = sql.rstrip() + ' ON CONFLICT (user_id, note_id) DO UPDATE SET value = EXCLUDED.value'
+            else:
+                sql = sql.rstrip() + ' ON CONFLICT DO NOTHING'
         self._cur.execute(sql, params or ())
         return self
     def fetchone(self):
@@ -142,8 +144,14 @@ class PgConnectionWrapper:
         wrapper.execute(sql, params)
         return wrapper
     def executescript(self, sql):
+        # Split by semicolons and execute each statement
         cur = self._conn.cursor()
-        cur.execute(sql)
+        stmts = [s.strip() for s in sql.split(';') if s.strip()]
+        for stmt in stmts:
+            try:
+                cur.execute(stmt)
+            except Exception:
+                pass
         self._conn.commit()
     def commit(self):
         self._conn.commit()
@@ -154,9 +162,21 @@ class PgConnectionWrapper:
 def get_db():
     if 'db' not in g:
         if USE_PG:
-            conn = pg_pool.getconn()  # Get from pool — near-instant!
+            try:
+                if not pg_pool.closed:
+                    conn = pg_pool.getconn(timeout=10)
+                    g._is_pool_conn = True
+                else:
+                    pg_pool.open(wait=True, timeout=30)
+                    conn = pg_pool.getconn(timeout=10)
+                    g._is_pool_conn = True
+            except Exception as e:
+                print(f"Pool getconn error: {e}")
+                # Fallback: direct connection
+                conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
+                g._is_pool_conn = False
             g.db = PgConnectionWrapper(conn)
-            g._pg_conn = conn  # Keep reference for returning to pool
+            g._pg_conn = conn
         else:
             g.db = sqlite3.connect(DB_PATH)
             g.db.row_factory = sqlite3.Row
@@ -174,8 +194,16 @@ def get_db():
 def close_db(e=None):
     db = g.pop('db', None)
     pg_conn = g.pop('_pg_conn', None)
-    if pg_conn and pg_pool:
-        pg_pool.putconn(pg_conn)  # Return to pool for reuse
+    is_pool_conn = g.pop('_is_pool_conn', False)
+    if pg_conn and pg_pool and is_pool_conn:
+        try:
+            pg_pool.putconn(pg_conn)  # Return to pool for reuse
+        except Exception:
+            try: pg_conn.close()
+            except: pass
+    elif pg_conn:
+        try: pg_conn.close()
+        except: pass
     elif db:
         db.close()
 
@@ -366,6 +394,12 @@ def init_db():
         """)
         admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
         admin_pass = os.environ.get('ADMIN_PASSWORD', 'CampusNotesAdmin@2025!Strong')
+        # Migrations for existing DBs
+        for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
+                         ('is_verified', 'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0')]:
+            try: db.execute(sql)
+            except: pass
+        db.commit()
         if not db.execute("SELECT 1 FROM users WHERE email=?", (admin_email,)).fetchone():
             db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(?,?,?,?,?)",
                        ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626'))
@@ -374,13 +408,6 @@ def init_db():
             print(f" Email: {admin_email}")
             print(f" Password: {admin_pass}")
             print("="*50 + "\n")
-
-        db.commit()
-        # Migrations for existing DBs
-        for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
-                         ('is_verified', 'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0')]:
-            try: db.execute(sql)
-            except: pass
         db.commit(); db.close()
     print(f" DB ready ({('PostgreSQL' if USE_PG else 'SQLite')})")
 
@@ -572,48 +599,40 @@ def browse():
     difficulty=request.args.get('difficulty','')
     sort=request.args.get('sort','latest')
     page=max(1,request.args.get('page',1,type=int)); pp=12
-    where=["status='approved'"]; params=[]
+    # Build WHERE conditions using table-qualified column names for JOIN compatibility
+    j_where = ["n.status='approved'"]
+    params = []
     if q:
         q = q.strip()
         parts = [p for p in q.split() if p]
         if parts:
-            # broad matching on any word in title, subject, tags, description, college
             q_clauses = []
             for p in parts:
-                q_clauses.append("(title LIKE ? OR subject LIKE ? OR tags LIKE ? OR description LIKE ? OR college LIKE ?)")
+                q_clauses.append("(n.title LIKE ? OR n.subject LIKE ? OR n.tags LIKE ? OR n.description LIKE ? OR n.college LIKE ?)")
                 like = f'%{p}%'
                 params.extend([like]*5)
-            where.append(' AND '.join(q_clauses))
-    if branch: where.append("branch=?"); params.append(branch)
-    if semester: where.append("semester=?"); params.append(int(semester))
-    if note_type: where.append("note_type=?"); params.append(note_type)
-    if difficulty: where.append("difficulty=?"); params.append(difficulty)
-    order={'downloads':'downloads DESC','saves':'views DESC'}.get(sort,'uploaded_at DESC')
-    base=f"FROM notes n JOIN users u ON n.uploaded_by = u.id WHERE n.status='approved' {' AND n.' + ' AND n.'.join(where[1:]) if len(where) > 1 else ''}"
-    if len(where) > 1:
-        # Re-build where for JOIN
-        j_where = ["n.status='approved'"]
-        for w in where[1:]:
-            j_where.append(f"n.{w}")
-        base = f"FROM notes n JOIN users u ON n.uploaded_by = u.id WHERE {' AND '.join(j_where)}"
-    else:
-        base = f"FROM notes n JOIN users u ON n.uploaded_by = u.id WHERE n.status='approved'"
+            j_where.append('(' + ' AND '.join(q_clauses) + ')')
+    if branch: j_where.append("n.branch=?"); params.append(branch)
+    if semester: j_where.append("n.semester=?"); params.append(int(semester))
+    if note_type: j_where.append("n.note_type=?"); params.append(note_type)
+    if difficulty: j_where.append("n.difficulty=?"); params.append(difficulty)
+    order={'downloads':'n.downloads DESC','saves':'n.views DESC'}.get(sort,'n.uploaded_at DESC')
+    base = f"FROM notes n JOIN users u ON n.uploaded_by = u.id WHERE {' AND '.join(j_where)}"
     
-    total=db.execute(f"SELECT COUNT(*) {base}",params).fetchone()[0]
-    notes=db.execute(f"SELECT n.*, u.name as uploader_name, u.profile_picture as uploader_pic, u.avatar_color as uploader_color, u.is_verified as uploader_verified {base} ORDER BY n.{order} LIMIT ? OFFSET ?",params+[pp,(page-1)*pp]).fetchall()
+    total=db.execute(f"SELECT COUNT(*) {base}", params).fetchone()[0]
+    notes=db.execute(f"SELECT n.*, u.name as uploader_name, u.profile_picture as uploader_pic, u.avatar_color as uploader_color, u.is_verified as uploader_verified {base} ORDER BY {order} LIMIT ? OFFSET ?", params+[pp,(page-1)*pp]).fetchall()
     if not notes and q:
-        # fallback to similar results on any words if exact combination returns none
+        # fallback: OR-match any word
         words=[w for w in q.split() if w]
         if words:
-            f_where=["status='approved'"]
-            f_params=[]
             f_sub=[]
+            f_params=[]
             for w in words:
-                f_sub.append("(title LIKE ? OR subject LIKE ? OR tags LIKE ? OR description LIKE ? OR college LIKE ?)")
+                f_sub.append("(n.title LIKE ? OR n.subject LIKE ? OR n.tags LIKE ? OR n.description LIKE ? OR n.college LIKE ?)")
                 like=f'%{w}%'
                 f_params.extend([like]*5)
-            f_where.append(' OR '.join(f_sub))
-            similar=db.execute(f"SELECT * FROM notes WHERE {' AND '.join(f_where)} ORDER BY downloads DESC LIMIT 20", f_params).fetchall()
+            sim_base = f"FROM notes n JOIN users u ON n.uploaded_by = u.id WHERE n.status='approved' AND ({' OR '.join(f_sub)})"
+            similar=db.execute(f"SELECT n.*, u.name as uploader_name, u.profile_picture as uploader_pic, u.avatar_color as uploader_color, u.is_verified as uploader_verified {sim_base} ORDER BY n.downloads DESC LIMIT 20", f_params).fetchall()
         else:
             similar=[]
     else:
@@ -1206,9 +1225,14 @@ def admin_review_note(nid):
     if request.method=='POST':
         action=request.form.get('action')
         if action=='approve':
-            db.execute("UPDATE notes SET status='approved',approved_at=datetime('now') WHERE id=?",(nid,))
+            if USE_PG:
+                db.execute("UPDATE notes SET status='approved',approved_at=NOW() WHERE id=?",(nid,))
+            else:
+                db.execute("UPDATE notes SET status='approved',approved_at=datetime('now') WHERE id=?",(nid,))
             db.execute("INSERT INTO notifications(user_id,message,type) VALUES(?,?,?)",
                        (note['uploaded_by'],f'Your note "{note["title"]}" was approved! 🎉','success'))
+            db.commit()
+            check_badges(db, note['uploaded_by'])
             flash('Note approved!','success')
         elif action=='reject':
             reason=request.form.get('reason','Did not meet quality standards.')
@@ -1318,19 +1342,18 @@ def ensure_db_initialized():
     global _db_initialized
     if not _db_initialized:
         try:
-            get_db()  # This triggers init_db() if tables don't exist
+            init_db()
         except Exception as e:
             print(f"DB init error on first request: {e}")
-            init_db()
         _db_initialized = True
 
-# Initialize DB at module level for production (Gunicorn)
+# Open the connection pool lazily (non-blocking startup)
 if USE_PG:
     try:
-        init_db()
-        print(" PostgreSQL DB initialized at startup")
+        pg_pool.open(wait=False)
+        print(" PostgreSQL connection pool opened")
     except Exception as e:
-        print(f" Warning: DB init at startup failed: {e}")
+        print(f" Warning: Pool open at startup failed: {e}")
 
 if __name__=='__main__':
     init_db()
