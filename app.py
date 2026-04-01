@@ -196,7 +196,7 @@ def close_db(e=None):
 
 def init_db():
     if USE_PG:
-        conn = psycopg.connect(DATABASE_URL, autocommit=True)
+        conn = psycopg.connect(DATABASE_URL, autocommit=True, connect_timeout=30)
         db = PgConnectionWrapper(conn)
         db.execute("""
         CREATE TABLE IF NOT EXISTS users(
@@ -1341,12 +1341,18 @@ _db_initialized = False
 @app.before_request
 def ensure_db_initialized():
     global _db_initialized
-    if not _db_initialized:
-        try:
-            init_db()
-        except Exception as e:
-            print(f"DB init error on first request: {e}")
-        _db_initialized = True
+    if _db_initialized:
+        return
+    # Skip for Render's health probes — answer immediately, no DB needed
+    if request.method == 'HEAD' or request.path == '/health':
+        return
+    try:
+        init_db()
+        _db_initialized = True  # Only mark done if init_db() actually succeeded
+        print(" DB initialized successfully on first request")
+    except Exception as e:
+        print(f"DB init error (will retry on next request): {e}")
+        # Do NOT set _db_initialized=True — force a retry on the next request
 
 # No pool to open in direct mode
 if USE_PG:
