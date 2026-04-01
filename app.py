@@ -11,19 +11,16 @@ if USE_PG:
     from psycopg.rows import dict_row
     from psycopg_pool import ConnectionPool
     # Fix Render/Supabase URLs that start with postgres:// instead of postgresql://
+    # Fix Render/Supabase URLs that start with postgres:// instead of postgresql://
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    # min_size=0: pool never pre-opens connections, avoids startup race condition
-    pg_pool = ConnectionPool(
-        DATABASE_URL,
-        min_size=0,
-        max_size=5,
-        kwargs={"row_factory": dict_row, "autocommit": False},
-        open=False,
-        reconnect_timeout=30,
-        max_waiting=10
-    )
-    print(" PostgreSQL connection pool created")
+    
+    if "sslmode=" not in DATABASE_URL:
+        DATABASE_URL += ("&" if "?" in DATABASE_URL else "?") + "sslmode=require"
+    
+    # We will use direct connections for now to save memory on Render Free Tier
+    pg_pool = None
+    print(" Using direct PostgreSQL connections (no pool)")
 else:
     pg_pool = None
 
@@ -166,19 +163,12 @@ def get_db():
     if 'db' not in g:
         if USE_PG:
             try:
-                # Open pool on first use if not already open
-                if pg_pool.closed:
-                    pg_pool.open(wait=True, timeout=20)
-                conn = pg_pool.getconn(timeout=25)
-                g._is_pool_conn = True
-            except Exception as e:
-                print(f"Pool getconn error: {e} — using direct connection")
-                try:
-                    conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
-                except Exception as e2:
-                    print(f"Direct connect also failed: {e2}")
-                    raise
+                # Direct connection for stability on low-RAM hosting
+                conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, connect_timeout=30)
                 g._is_pool_conn = False
+            except Exception as e:
+                print(f"PostgreSQL connection error: {e}")
+                raise
             g.db = PgConnectionWrapper(conn)
             g._pg_conn = conn
         else:
@@ -1358,13 +1348,9 @@ def ensure_db_initialized():
             print(f"DB init error on first request: {e}")
         _db_initialized = True
 
-# Open the pool at startup (wait=False, min_size=0 means nothing to open yet — instant)
+# No pool to open in direct mode
 if USE_PG:
-    try:
-        pg_pool.open(wait=False)
-        print(" PostgreSQL connection pool ready (lazy mode)")
-    except Exception as e:
-        print(f" Warning: Pool open at startup failed: {e}")
+    print(" PostgreSQL ready (direct mode)")
 
 if __name__=='__main__':
     init_db()
