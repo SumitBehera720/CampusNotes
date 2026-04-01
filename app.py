@@ -158,6 +158,8 @@ class PgConnectionWrapper:
     def close(self):
         self._conn.close()
 
+def hp(p): return hashlib.sha256(p.encode()).hexdigest()
+
 # ─── DB ─────────────────────────────────────────────────────────────
 def get_db():
     if 'db' not in g:
@@ -181,11 +183,6 @@ def get_db():
             g.db = sqlite3.connect(DB_PATH)
             g.db.row_factory = sqlite3.Row
             g.db.execute("PRAGMA foreign_keys=ON")
-        # Fail-safe: Check if tables exist, if not, initialize
-        try:
-            g.db.execute("SELECT 1 FROM notes LIMIT 1")
-        except Exception:
-            init_db()
     return g.db
 
 
@@ -411,12 +408,22 @@ def init_db():
         db.commit(); db.close()
     print(f" DB ready ({('PostgreSQL' if USE_PG else 'SQLite')})")
 
-def hp(p): return hashlib.sha256(p.encode()).hexdigest()
 
 # ─── AUTH ────────────────────────────────────────────────────────────
 def cur_user():
-    uid = session.get('user_id')
-    return get_db().execute("SELECT * FROM users WHERE id=?",(uid,)).fetchone() if uid else None
+    """Fetch current user once per request; cached in Flask g."""
+    if 'cur_user_cache' not in g:
+        uid = session.get('user_id')
+        if uid:
+            try:
+                g.cur_user_cache = get_db().execute(
+                    "SELECT * FROM users WHERE id=?", (uid,)
+                ).fetchone()
+            except Exception:
+                g.cur_user_cache = None
+        else:
+            g.cur_user_cache = None
+    return g.cur_user_cache
 
 def login_req(f):
     @functools.wraps(f)
@@ -443,19 +450,23 @@ def allowed(fn): return '.' in fn and fn.rsplit('.',1)[1].lower() in ALLOWED_EXT
 @app.context_processor
 def inject():
     try:
-        u = cur_user()
+        u = cur_user()  # Uses g cache — no extra DB hit
         unread = 0; nav_notifs = []
         if u:
             db = get_db()
-            unread = db.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0",(u['id'],)).fetchone()[0]
-            nav_notifs = db.execute("SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 8",(u['id'],)).fetchall()
+            # Single query: get notifications and count unread in one go
+            nav_notifs = db.execute(
+                "SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 8",
+                (u['id'],)
+            ).fetchall()
+            unread = sum(1 for n in nav_notifs if not n['is_read'])
         is_auth = u is not None
         is_admin = bool(u and u['role'] == 'admin')
         user_initials = ''
         if u and u['name']:
             parts = u['name'].split()
             user_initials = ''.join(p[0].upper() for p in parts[:2] if p)
-        
+
         def get_avatar_url(pp):
             if not pp: return ''
             if pp.startswith('data:'): return pp
@@ -468,7 +479,7 @@ def inject():
                     badge_types=BADGE_TYPES,
                     config={'BRANCHES':BRANCHES,'SEMESTERS':SEMESTERS,'NOTE_TYPES':NOTE_TYPES,'DIFFICULTY':DIFFICULTY})
     except Exception as e:
-        print(f"Error in context processor: {e}")
+        print(f"inject() error: {e}")
         return dict(current_user=None, unread_notifs=0, nav_notifs=[],
                     is_auth=False, is_admin=False, user_initials='',
                     is_exam_season=False, badge_types=BADGE_TYPES, config={}, get_avatar_url=lambda pp: '')
