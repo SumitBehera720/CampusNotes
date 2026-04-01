@@ -13,14 +13,15 @@ if USE_PG:
     # Fix Render/Supabase URLs that start with postgres:// instead of postgresql://
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    # Create a connection pool — reuses connections instead of creating one per request
+    # min_size=0: pool never pre-opens connections, avoids startup race condition
     pg_pool = ConnectionPool(
         DATABASE_URL,
-        min_size=1,
+        min_size=0,
         max_size=5,
         kwargs={"row_factory": dict_row, "autocommit": False},
         open=False,
-        reconnect_timeout=30
+        reconnect_timeout=30,
+        max_waiting=10
     )
     print(" PostgreSQL connection pool created")
 else:
@@ -165,17 +166,18 @@ def get_db():
     if 'db' not in g:
         if USE_PG:
             try:
-                if not pg_pool.closed:
-                    conn = pg_pool.getconn(timeout=10)
-                    g._is_pool_conn = True
-                else:
-                    pg_pool.open(wait=True, timeout=30)
-                    conn = pg_pool.getconn(timeout=10)
-                    g._is_pool_conn = True
+                # Open pool on first use if not already open
+                if pg_pool.closed:
+                    pg_pool.open(wait=True, timeout=20)
+                conn = pg_pool.getconn(timeout=25)
+                g._is_pool_conn = True
             except Exception as e:
-                print(f"Pool getconn error: {e}")
-                # Fallback: direct connection
-                conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
+                print(f"Pool getconn error: {e} — using direct connection")
+                try:
+                    conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
+                except Exception as e2:
+                    print(f"Direct connect also failed: {e2}")
+                    raise
                 g._is_pool_conn = False
             g.db = PgConnectionWrapper(conn)
             g._pg_conn = conn
@@ -184,8 +186,6 @@ def get_db():
             g.db.row_factory = sqlite3.Row
             g.db.execute("PRAGMA foreign_keys=ON")
     return g.db
-
-
 
 @app.teardown_appcontext
 def close_db(e=None):
@@ -1358,11 +1358,11 @@ def ensure_db_initialized():
             print(f"DB init error on first request: {e}")
         _db_initialized = True
 
-# Open the connection pool lazily (non-blocking startup)
+# Open the pool at startup (wait=False, min_size=0 means nothing to open yet — instant)
 if USE_PG:
     try:
         pg_pool.open(wait=False)
-        print(" PostgreSQL connection pool opened")
+        print(" PostgreSQL connection pool ready (lazy mode)")
     except Exception as e:
         print(f" Warning: Pool open at startup failed: {e}")
 
