@@ -18,9 +18,16 @@ if USE_PG:
     if "sslmode=" not in DATABASE_URL:
         DATABASE_URL += ("&" if "?" in DATABASE_URL else "?") + "sslmode=require"
     
-    # We will use direct connections for now to save memory on Render Free Tier
-    pg_pool = None
-    print(" Using direct PostgreSQL connections (no pool)")
+    pg_pool = ConnectionPool(
+        DATABASE_URL,
+        min_size=1,
+        max_size=4,
+        kwargs={"row_factory": dict_row, "autocommit": False, "connect_timeout": 30},
+        open=False,
+        reconnect_timeout=60,
+        max_waiting=10
+    )
+    print(" PostgreSQL connection pool configured")
 else:
     pg_pool = None
 
@@ -163,12 +170,14 @@ def get_db():
     if 'db' not in g:
         if USE_PG:
             try:
-                # Direct connection for stability on low-RAM hosting
+                if pg_pool.closed:
+                    pg_pool.open(wait=True, timeout=30)
+                conn = pg_pool.getconn(timeout=30)
+                g._is_pool_conn = True
+            except Exception as e:
+                print(f"Pool error: {e} — fallback to direct connection")
                 conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, connect_timeout=30)
                 g._is_pool_conn = False
-            except Exception as e:
-                print(f"PostgreSQL connection error: {e}")
-                raise
             g.db = PgConnectionWrapper(conn)
             g._pg_conn = conn
         else:
@@ -1354,9 +1363,13 @@ def ensure_db_initialized():
         print(f"DB init error (will retry on next request): {e}")
         # Do NOT set _db_initialized=True — force a retry on the next request
 
-# No pool to open in direct mode
+# Open the pool in background to have connections ready
 if USE_PG:
-    print(" PostgreSQL ready (direct mode)")
+    try:
+        pg_pool.open(wait=False)
+        print(" PostgreSQL pool opening in background...")
+    except Exception as e:
+        print(f" Warning: background pool open failed: {e}")
 
 if __name__=='__main__':
     init_db()
