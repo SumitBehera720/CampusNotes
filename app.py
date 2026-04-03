@@ -602,7 +602,7 @@ def index():
     """
     featured = db.execute(f"{note_sql} AND n.featured=1 ORDER BY n.uploaded_at DESC LIMIT 6").fetchall()
     recent = db.execute(f"{note_sql} ORDER BY n.uploaded_at DESC LIMIT 8").fetchall()
-    popular = db.execute(f"{note_sql} ORDER BY n.downloads DESC LIMIT 8").fetchall()
+    popular = db.execute(f"{note_sql} AND n.downloads > 0 ORDER BY n.downloads DESC LIMIT 10").fetchall()
     # Combined stats query — 1 query instead of 3
     stats_row = db.execute("SELECT COUNT(*) as nc, COALESCE(SUM(downloads),0) as dl FROM notes WHERE status='approved'").fetchone()
     user_count = db.execute("SELECT COUNT(*) FROM users WHERE role='student'").fetchone()[0]
