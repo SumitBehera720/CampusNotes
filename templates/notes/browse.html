@@ -102,22 +102,24 @@
         {% endif %}
 
         {% else %}
+        {% if similar %}
+        <div class="empty-state" style="padding-top: 1rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; text-align: left; width: 100%;">No exact match, but we found similar notes:</h2>
+          <div class="notes-grid" style="width: 100%;">
+            {% for note in similar %}
+              {% include 'notes/_note_card.html' %}
+            {% endfor %}
+          </div>
+          <a href="{{ url_for('browse') }}" class="btn btn-outline mt-4">Clear Filters</a>
+        </div>
+        {% else %}
         <div class="empty-state">
           <div class="empty-icon">🔍</div>
           <div class="empty-title">No notes found</div>
           <div class="empty-text">Try adjusting your filters or search term.</div>
-          {% if similar %}
-          <div style="margin-top:16px; text-align:left; max-width:480px;">
-            <div style="font-weight:700; margin-bottom:8px;">Similar results</div>
-            <div class="notes-grid">
-              {% for note in similar %}
-              {% include 'notes/_note_card.html' %}
-              {% endfor %}
-            </div>
-          </div>
-          {% endif %}
           <a href="{{ url_for('browse') }}" class="btn btn-outline mt-4">Clear Filters</a>
         </div>
+        {% endif %}
         {% endif %}
       </main>
     </div>

@@ -709,7 +709,7 @@ def autocomplete():
     payload=[]
     for n in notes:
         uploader = f" · by {n['uploader_name']}" if n['uploader_name'] else ""
-        payload.append({'id':n['id'],'text':f"{n['title']} · {n['subject']} · {n['branch']} · Sem {n['semester']}{uploader}"})
+        payload.append({'id':n['id'], 'title': n['title'], 'text':f"{n['title']} · {n['subject']} · {n['branch']} · Sem {n['semester']}{uploader}"})
     return jsonify(payload)
 
 # ─── DETAIL ─────────────────────────────────────────────────────────

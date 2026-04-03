@@ -138,8 +138,10 @@ function initAutocomplete() {
   if (!input || !suggestions) return;
 
   let timer;
+  let currentFocus = -1;
   input.addEventListener('input', () => {
     const q = input.value.trim();
+    currentFocus = -1;
     if (timer) clearTimeout(timer);
     if (q.length < 2) {
       suggestions.style.display = 'none';
@@ -154,11 +156,39 @@ function initAutocomplete() {
           suggestions.style.display = 'none';
           return;
         }
-        suggestions.innerHTML = data.map(item => `<div class="suggestion-item" data-id="${item.id}" data-text="${item.text}">${item.text}</div>`).join('');
+        suggestions.innerHTML = data.map(item => `<div class="suggestion-item" data-id="${item.id}" data-title="${(item.title||'').replace(/"/g, '&quot;')}">${item.text}</div>`).join('');
         suggestions.style.display = 'block';
       });
     }, 220);
   });
+
+  input.addEventListener('keydown', (e) => {
+    let items = suggestions.querySelectorAll('.suggestion-item');
+    if (!items.length || suggestions.style.display === 'none') return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      currentFocus++;
+      addActive(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      currentFocus--;
+      addActive(items);
+    } else if (e.key === 'Enter') {
+      if (currentFocus > -1) {
+        e.preventDefault();
+        items[currentFocus].click();
+      }
+    }
+  });
+
+  function addActive(items) {
+    items.forEach(item => item.classList.remove('active'));
+    if (currentFocus >= items.length) currentFocus = 0;
+    if (currentFocus < 0) currentFocus = items.length - 1;
+    items[currentFocus].classList.add('active');
+    items[currentFocus].scrollIntoView({ block: 'nearest' });
+  }
 
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#searchInput') && !e.target.closest('#suggestions')) {
@@ -169,7 +199,7 @@ function initAutocomplete() {
   suggestions.addEventListener('click', (e) => {
     const item = e.target.closest('.suggestion-item');
     if (!item) return;
-    input.value = item.dataset.text;
+    input.value = item.dataset.title || item.innerText;
     document.getElementById('filter-form').submit();
   });
 }
