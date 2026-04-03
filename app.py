@@ -53,13 +53,19 @@ def _ensure_pool_open():
             print(f" Pool open failed: {e} — will retry on next request")
 
 # Supabase Storage Support
+# IMPORTANT: Use the service_role key (not anon key) for server-side operations.
+# The service_role key bypasses Row Level Security (RLS), which is required
+# for backend uploads. The anon key causes 403 "violates row-level security policy".
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
-if SUPABASE_URL and SUPABASE_KEY:
+SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY')  # service_role key — bypasses RLS
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')                  # anon key — fallback only
+_supabase_key_to_use = SUPABASE_SERVICE_KEY or SUPABASE_KEY
+if SUPABASE_URL and _supabase_key_to_use:
     try:
         from supabase import create_client
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print(" Supabase client initialized")
+        supabase = create_client(SUPABASE_URL, _supabase_key_to_use)
+        key_type = "service_role" if SUPABASE_SERVICE_KEY else "anon (⚠️ RLS may block uploads)"
+        print(f" Supabase client initialized with {key_type} key")
     except Exception as e:
         print(f" Supabase init error: {e}")
         supabase = None
