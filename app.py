@@ -1,4 +1,4 @@
-import sqlite3, os, uuid, hashlib, functools, random
+import sqlite3, os, uuid, hashlib, functools, random, threading
 from datetime import datetime, date, timedelta
 from flask import (Flask, render_template, redirect, url_for, flash,
                    request, send_from_directory, jsonify, session, abort, g)
@@ -11,25 +11,46 @@ if USE_PG:
     from psycopg.rows import dict_row
     from psycopg_pool import ConnectionPool
     # Fix Render/Supabase URLs that start with postgres:// instead of postgresql://
-    # Fix Render/Supabase URLs that start with postgres:// instead of postgresql://
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    
+
     if "sslmode=" not in DATABASE_URL:
         DATABASE_URL += ("&" if "?" in DATABASE_URL else "?") + "sslmode=require"
-    
+
+    # Pool is created lazily — NOT opened at import time to avoid Gunicorn
+    # worker fork issues and cold-start 502 errors.
     pg_pool = ConnectionPool(
         DATABASE_URL,
         min_size=1,
-        max_size=4,
+        max_size=3,
         kwargs={"row_factory": dict_row, "autocommit": False, "connect_timeout": 30},
-        open=False,
-        reconnect_timeout=60,
-        max_waiting=10
+        open=False,          # Do NOT open at module load time
+        reconnect_timeout=30,
+        max_waiting=8,
+        timeout=30,
     )
-    print(" PostgreSQL connection pool configured")
+    print(" PostgreSQL connection pool created (not yet opened)")
 else:
     pg_pool = None
+
+# Thread-safe pool/DB initialisation gate
+_pool_lock = threading.Lock()
+_pool_opened = False
+
+def _ensure_pool_open():
+    """Open the connection pool exactly once, thread-safely."""
+    global _pool_opened
+    if _pool_opened:
+        return
+    with _pool_lock:
+        if _pool_opened:
+            return
+        try:
+            pg_pool.open(wait=True, timeout=45)
+            _pool_opened = True
+            print(" PostgreSQL pool opened successfully")
+        except Exception as e:
+            print(f" Pool open failed: {e} — will retry on next request")
 
 # Supabase Storage Support
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
@@ -169,13 +190,12 @@ def hp(p): return hashlib.sha256(p.encode()).hexdigest()
 def get_db():
     if 'db' not in g:
         if USE_PG:
+            _ensure_pool_open()
             try:
-                if pg_pool.closed:
-                    pg_pool.open(wait=True, timeout=30)
                 conn = pg_pool.getconn(timeout=30)
                 g._is_pool_conn = True
             except Exception as e:
-                print(f"Pool error: {e} — fallback to direct connection")
+                print(f"Pool getconn error: {e} — falling back to direct connection")
                 conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, connect_timeout=30)
                 g._is_pool_conn = False
             g.db = PgConnectionWrapper(conn)
@@ -1339,39 +1359,51 @@ def e500(e):
     traceback.print_exc()
     return render_template('errors/500.html'), 500
 
+@app.errorhandler(503)
+def e503(e):
+    return jsonify({'status': 'starting', 'message': 'Server is initializing, please retry in a moment.'}), 503
+
 # ─── HEALTH CHECK ───────────────────────────────────────────────────
 @app.route('/health')
 def health_check():
-    """Lightweight endpoint for cron job keepalive — no DB access."""
-    return jsonify({'status': 'ok'}), 200
+    """Health endpoint — returns ok immediately; pings DB once initialized."""
+    if _db_initialized:
+        try:
+            get_db().execute("SELECT 1").fetchone()
+            return jsonify({'status': 'ok', 'db': 'connected'}), 200
+        except Exception as e:
+            return jsonify({'status': 'degraded', 'db': str(e)}), 200
+    return jsonify({'status': 'starting'}), 200
 
 # ─── DB INIT ON FIRST REQUEST (for Gunicorn workers) ────────────────
 _db_initialized = False
+_db_init_lock = threading.Lock()
+
 @app.before_request
 def ensure_db_initialized():
     global _db_initialized
     if _db_initialized:
         return
-    # Skip for Render's health probes — answer immediately, no DB needed
-    if request.method == 'HEAD' or request.path == '/health':
+    # Always respond immediately to health/HEAD probes
+    if request.method == 'HEAD' or request.path in ('/health', '/favicon.ico'):
         return
-    try:
-        init_db()
-        _db_initialized = True  # Only mark done if init_db() actually succeeded
-        print(" DB initialized successfully on first request")
-    except Exception as e:
-        print(f"DB init error (will retry on next request): {e}")
-        # Do NOT set _db_initialized=True — force a retry on the next request
+    with _db_init_lock:
+        if _db_initialized:  # double-check after acquiring lock
+            return
+        try:
+            init_db()
+            _db_initialized = True
+            print(" DB initialized successfully on first request")
+        except Exception as e:
+            print(f"DB init error (will retry): {e}")
+            # Return a 503 so the load balancer retries instead of getting a 500
+            from flask import abort as _abort
+            _abort(503)
 
-# Open the pool in background to have connections ready
-if USE_PG:
-    try:
-        pg_pool.open(wait=False)
-        print(" PostgreSQL pool opening in background...")
-    except Exception as e:
-        print(f" Warning: background pool open failed: {e}")
+# NOTE: Do NOT call pg_pool.open() here at module level.
+# It is opened lazily inside _ensure_pool_open() on the first real request.
+# This prevents Gunicorn worker fork/startup race conditions.
 
-if __name__=='__main__':
+if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=os.environ.get('PORT', 5002))
-
