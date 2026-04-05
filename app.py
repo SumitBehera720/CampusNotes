@@ -815,20 +815,24 @@ def upload():
 def download_note(nid):
     db=get_db(); u=cur_user()
     note=db.execute("SELECT * FROM notes WHERE id=?",(nid,)).fetchone()
-    if not note or note['status']!='approved': abort(403)
+    if not note: abort(404)
+    if note['status'] != 'approved':
+        if not u or (not u.get('is_admin') and note['uploaded_by'] != u['id']):
+            abort(403)
     
-    # Track stats
-    db.execute("UPDATE notes SET downloads=downloads+1 WHERE id=?",(nid,))
-    db.execute("INSERT INTO download_history(user_id,note_id) VALUES(?,?)",(u['id'],nid))
-    db.commit()
-    check_badges(db, note['uploaded_by'])
+    # Track stats only for approved notes viewed by non-authors
+    if note['status'] == 'approved' and note['uploaded_by'] != u['id']:
+        db.execute("UPDATE notes SET downloads=downloads+1 WHERE id=?",(nid,))
+        db.execute("INSERT INTO download_history(user_id,note_id) VALUES(?,?)",(u['id'],nid))
+        db.commit()
+        check_badges(db, note['uploaded_by'])
     
     # Serve from Supabase if possible
     if supabase:
         try:
             res = supabase.storage.from_('notes').get_public_url(note['file_path'])
-            # We redirect to the public URL for download
-            return redirect(res)
+            import urllib.parse
+            return redirect(res + "?download=" + urllib.parse.quote(note['file_name']))
         except: pass
         
     # Local fallback
@@ -846,9 +850,12 @@ def download_note(nid):
 @app.route('/preview/<int:nid>')
 @login_req
 def preview_note(nid):
-    db=get_db()
+    db=get_db(); u=cur_user()
     note=db.execute("SELECT * FROM notes WHERE id=?",(nid,)).fetchone()
-    if not note or note['status']!='approved': abort(403)
+    if not note: abort(404)
+    if note['status'] != 'approved':
+        if not u or (not u.get('is_admin') and note['uploaded_by'] != u['id']):
+            abort(403)
     
     # Serve from Supabase if possible
     if supabase:
