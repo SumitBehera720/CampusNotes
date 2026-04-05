@@ -15,7 +15,7 @@
     <a href="{{ url_for('admin_notes', status='rejected') }}" class="admin-nav-item">❌ Rejected Notes</a>
     <a href="{{ url_for('admin_users') }}" class="admin-nav-item {{ 'active' if request.endpoint == 'admin_users' }}">👥 Users</a>
     <a href="{{ url_for('admin_reports') }}" class="admin-nav-item {{ 'active' if request.endpoint == 'admin_reports' }}">🚩 Reports</a>
-    <div class="admin-sidebar-footer" style="margin-top: auto; padding: 20px; display: flex; gap: 8px;">
+    <div class="admin-sidebar-footer" style="margin-top: auto; padding: 20px;">
       <a href="{{ url_for('index') }}" class="admin-nav-item">🌐 View Site</a>
       <a href="{{ url_for('logout') }}" class="admin-nav-item" style="color: #fca5a5;">🚪 Logout</a>
     </div>
