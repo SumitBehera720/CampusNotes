@@ -234,6 +234,11 @@ def init_db():
         conn = psycopg.connect(DATABASE_URL, autocommit=True, connect_timeout=30)
         db = PgConnectionWrapper(conn)
         db.execute("""
+        CREATE TABLE IF NOT EXISTS file_blobs(
+            filename TEXT PRIMARY KEY,
+            data BYTEA)
+        """)
+        db.execute("""
         CREATE TABLE IF NOT EXISTS users(
             id SERIAL PRIMARY KEY, name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL,
@@ -342,12 +347,16 @@ def init_db():
     else:
         db = sqlite3.connect(DB_PATH)
         db.executescript("""
+        CREATE TABLE IF NOT EXISTS file_blobs(
+            filename TEXT PRIMARY KEY,
+            data BLOB);
         CREATE TABLE IF NOT EXISTS users(
             id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL,
             role TEXT DEFAULT 'student', status TEXT DEFAULT 'active',
             college TEXT, branch TEXT, semester INTEGER, bio TEXT,
             avatar_color TEXT DEFAULT '#4f46e5', profile_picture TEXT,
+            is_verified INTEGER DEFAULT 0,
             created_at TEXT DEFAULT(datetime('now')));
         CREATE TABLE IF NOT EXISTS notes(
             id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
@@ -418,7 +427,8 @@ def init_db():
         admin_pass = os.environ.get('ADMIN_PASSWORD', 'CampusNotesAdmin@2025!Strong')
         # Migrations for existing DBs
         for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
-                         ('is_verified', 'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0')]:
+                         ('is_verified', 'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0'),
+                         ('file_blobs', 'CREATE TABLE IF NOT EXISTS file_blobs(filename TEXT PRIMARY KEY, data BLOB)')]:
             try: db.execute(sql)
             except: pass
         db.commit()
@@ -759,12 +769,13 @@ def upload():
         ext=file.filename.rsplit('.',1)[1].lower()
         uname=f"{uuid.uuid4().hex}.{ext}"
         
+        # Read file data once
+        file_data = file.read()
+        fsz = len(file_data)
+        
         # Upload to Supabase Storage if configured
         if supabase:
             try:
-                # Read file data
-                file_data = file.read()
-                fsz = len(file_data)
                 # Upload to 'notes' bucket
                 supabase.storage.from_('notes').upload(
                     path=uname,
@@ -774,10 +785,13 @@ def upload():
             except Exception as e:
                 flash(f'Cloud upload failed: {e}','error'); return render_template('notes/upload.html')
         else:
-            # Fallback to local if no Supabase (Note: will be lost on Render restart)
+            # Fallback to local and Database persistence
             save_path=os.path.join(UPLOAD_FOLDER,uname)
-            file.save(save_path)
-            fsz=os.path.getsize(save_path)
+            with open(save_path, 'wb') as f:
+                f.write(file_data)
+            db=get_db()
+            try: db.execute("INSERT OR IGNORE INTO file_blobs(filename, data) VALUES(?,?)", (uname, file_data))
+            except: pass
         
         db=get_db()
         db.execute("INSERT INTO notes(title,subject,branch,semester,note_type,difficulty,description,tags,college,file_path,file_name,file_size,file_ext,uploaded_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -820,8 +834,13 @@ def download_note(nid):
     # Local fallback
     file_path = os.path.join(UPLOAD_FOLDER, note['file_path'])
     if not os.path.exists(file_path):
-        flash('⚠️ File Not Found — This note was uploaded during a previous hosting session and is no longer on the server. Please contact the uploader.', 'error')
-        return redirect(url_for('note_detail', nid=nid))
+        blob = db.execute("SELECT data FROM file_blobs WHERE filename=?", (note['file_path'],)).fetchone()
+        if blob and blob['data']:
+            with open(file_path, 'wb') as f:
+                f.write(blob['data'])
+        else:
+            flash('⚠️ File Not Found — This note was uploaded during a previous hosting session and is no longer on the server. Please contact the uploader.', 'error')
+            return redirect(url_for('note_detail', nid=nid))
     return send_from_directory(UPLOAD_FOLDER, note['file_path'], as_attachment=True, download_name=note['file_name'])
 
 @app.route('/preview/<int:nid>')
@@ -841,7 +860,12 @@ def preview_note(nid):
     # Local fallback
     file_path = os.path.join(UPLOAD_FOLDER, note['file_path'])
     if not os.path.exists(file_path):
-        abort(404)
+        blob = db.execute("SELECT data FROM file_blobs WHERE filename=?", (note['file_path'],)).fetchone()
+        if blob and blob['data']:
+            with open(file_path, 'wb') as f:
+                f.write(blob['data'])
+        else:
+            abort(404)
     return send_from_directory(UPLOAD_FOLDER, note['file_path'])
 
 # ─── SAVE / RATE / COMMENT / REPORT ─────────────────────────────────
@@ -1051,6 +1075,7 @@ def delete_my_note(nid):
     # Remove local fallback
     try: os.remove(os.path.join(UPLOAD_FOLDER,note['file_path']))
     except: pass
+    db.execute("DELETE FROM file_blobs WHERE filename=?", (note['file_path'],))
     
     db.execute("DELETE FROM notes WHERE id=?",(nid,)); db.commit()
     flash('Note deleted.','success'); return redirect(url_for('my_notes'))
@@ -1334,6 +1359,7 @@ def admin_delete_note(nid):
     # Remove local fallback
     try: os.remove(os.path.join(UPLOAD_FOLDER,note['file_path']))
     except: pass
+    db.execute("DELETE FROM file_blobs WHERE filename=?", (note['file_path'],))
     
     db.execute("DELETE FROM notes WHERE id=?",(nid,)); db.commit()
     flash('Note deleted.','success'); return redirect(url_for('admin_notes'))

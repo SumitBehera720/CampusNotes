@@ -7,8 +7,9 @@
 <div class="table-card">
   <div class="table-card-header">All Reports ({{ reports|length }})</div>
   {% if reports %}
-  <table>
-    <thead>
+  <div class="table-responsive">
+    <table>
+      <thead>
       <tr><th>Note</th><th>Reporter</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
     </thead>
     <tbody>
@@ -40,9 +41,10 @@
         </td>
       </tr>
       {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
   <div class="empty-state">
     <div class="empty-icon">🎉</div>
     <div class="empty-title">No reports</div>

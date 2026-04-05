@@ -26,9 +26,11 @@
     <div class="stat-card-value">{{ total_downloads }}</div>
     <div class="stat-card-icon">⬇</div>
   </div>
-  <div class="stat-card" style="{{ 'border-color: #fca5a5;' if reports > 0 }}">
+  {% set report_card_style = 'style="border-color: #fca5a5;"' | safe if reports > 0 else '' %}
+  <div class="stat-card" {{ report_card_style }}>
     <div class="stat-card-label">Open Reports</div>
-    <div class="stat-card-value" style="{{ 'color: var(--danger)' if reports > 0 }}">{{ reports }}</div>
+    {% set report_val_style = 'style="color: var(--danger);"' | safe if reports > 0 else '' %}
+    <div class="stat-card-value" {{ report_val_style }}>{{ reports }}</div>
     <div class="stat-card-icon">🚩</div>
   </div>
 </div>
@@ -41,21 +43,23 @@
     {% for d in daily_data %}
     <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
       <span style="font-size:0.75rem; color:var(--muted)">{{ d.count }}</span>
-      <div style="width:100%; background:var(--accent); border-radius:4px 4px 0 0; min-height:4px;
-           height:{{ [(d.count / (max_count or 1) * 80)|int, 4] | max }}px;"></div>
+      {% set bar_height = [(d.count / (max_count or 1) * 80)|int, 4] | max %}
+      {% set bar_style = 'style="width:100%; background:var(--accent); border-radius:4px 4px 0 0; min-height:4px; height:' ~ bar_height ~ 'px;"' %}
+      <div {{ bar_style | safe }}></div>
       <span style="font-size:0.72rem; color:var(--muted)">{{ d.day }}</span>
     </div>
     {% endfor %}
   </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+<div class="dashboard-grid-2x2">
   <!-- Pending Approvals -->
   <div class="table-card">
     <div class="table-card-header">
       ⏳ Pending Approvals
       <a href="{{ url_for('admin_notes', status='pending') }}" class="btn btn-warning btn-sm">View All</a>
     </div>
+    <div class="table-responsive">
     <table>
       <thead><tr><th>Title</th><th>By</th><th>Date</th><th></th></tr></thead>
       <tbody>
@@ -76,6 +80,7 @@
   <!-- Top Downloads -->
   <div class="table-card">
     <div class="table-card-header">🔥 Most Downloaded</div>
+    <div class="table-responsive">
     <table>
       <thead><tr><th>Title</th><th>Downloads</th></tr></thead>
       <tbody>
@@ -98,6 +103,7 @@
     👥 Recently Joined Students
     <a href="{{ url_for('admin_users') }}" class="btn btn-outline btn-sm">Manage All</a>
   </div>
+  <div class="table-responsive">
   <table>
     <thead><tr><th>Name</th><th>Email</th><th>College</th><th>Branch</th><th>Joined</th><th>Status</th></tr></thead>
     <tbody>
@@ -105,7 +111,8 @@
       <tr>
         <td>
           <div style="display:flex; align-items:center; gap:8px;">
-            <div class="avatar-xs" style="background:{{ user['avatar_color'] }}">{{ user.initials }}</div>
+            {% set avatar_style = 'style="background:' ~ user['avatar_color'] ~ ';"' %}
+            <div class="avatar-xs" {{ avatar_style | safe }}>{{ user.initials }}</div>
             {{ user['name'] }}
           </div>
         </td>
@@ -118,5 +125,6 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 {% endblock %}
