@@ -599,6 +599,11 @@ def check_badges(db, uid):
         except: pass
     if new_badges: db.commit()
 
+# ─── GOOGLE VERIFICATION ──────────────────────────────────────────────
+@app.route('/google861a1c11c5e551c2.html')
+def google_verify():
+    return send_from_directory(os.path.dirname(__file__), 'google861a1c11c5e551c2.html')
+
 # ─── INDEX ──────────────────────────────────────────────────────────
 @app.route('/')
 def index():
