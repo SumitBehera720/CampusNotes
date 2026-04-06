@@ -3,19 +3,21 @@
 
 {% block content %}
 <div class="dashboard-header">
-  <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
-    <div>
-      <h1>📝 Note Requests</h1>
-      <p>Can't find what you need? Request it here, or help others by fulfilling requests.</p>
+  <div class="container" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+    <div style="flex: 1 1 300px;">
+      <h1 style="margin: 0 0 8px 0;">📝 Note Requests</h1>
+      <p style="margin: 0; color:var(--text-secondary);">Can't find what you need? Request it here, or help others by fulfilling requests.</p>
     </div>
     {% if is_auth %}
-    <button class="btn btn-primary" onclick="document.getElementById('requestModal').style.display='flex'">+ New Request</button>
+    <div style="flex-shrink:0;">
+      <button class="btn btn-primary" onclick="document.getElementById('requestModal').style.display='flex'">+ New Request</button>
+    </div>
     {% endif %}
   </div>
 </div>
 
 <div class="container" style="padding: 40px 20px;">
-  <div class="requests-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px;">
+  <div class="requests-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px;">
     {% for req in requests %}
     <div class="card fade-up" style="display:flex; flex-direction:column; padding:24px;">
       <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
