@@ -6,7 +6,7 @@
 
 ### The Ultimate Premium Academic Note-Sharing Platform Built with Flask, PostgreSQL & Supabase
 
-[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Visit%20Site-4f46e5?style=for-the-badge)](http://campusnotes-prod-your-url.onrender.com)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Visit%20Site-4f46e5?style=for-the-badge)](https://campusnotes-8crf.onrender.com/)
 [![GitHub Stars](https://img.shields.io/github/stars/SumitBehera720/CampusNotes?style=for-the-badge&color=4f46e5)](https://github.com/SumitBehera720/CampusNotes/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/SumitBehera720/CampusNotes?style=for-the-badge&color=4f46e5)](https://github.com/SumitBehera720/CampusNotes/network)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4f46e5?style=for-the-badge)](LICENSE)
@@ -18,7 +18,7 @@
 <br/>
 
 <!-- Insert absolute path/URL to your hero screenshot here -->
-![CampusNotes Preview](Screenshot.png)
+![CampusNotes Preview](screenshots/homepage.png)
 
 </div>
 
@@ -50,7 +50,7 @@ Built entirely with Python/Flask on the backend and pure HTML/CSS/JS on the fron
 <a name="demo"></a>
 ## 🌐 Live Demo
 
-🔗 **[https://campusnotes-8crf.onrender.com/]**
+🔗 **[https://campusnotes-8crf.onrender.com/](https://campusnotes-8crf.onrender.com/)**
 
 > Optimal on both desktop and mobile platforms!
 
@@ -125,15 +125,19 @@ Built entirely with Python/Flask on the backend and pure HTML/CSS/JS on the fron
 <a name="pages"></a>
 ## 📸 Key Pages & Views
 
-*(You can replace the placeholder URLs with actual local screenshot paths like `./screenshots/home.png` once you take them)*
 
-| ![Home Page](https://via.placeholder.com/600x338?text=Home+Page+Preview) | ![Note View](https://via.placeholder.com/600x338?text=Note+Detail+Preview) |
+
+| ![Home Page](screenshots/homepage.png) | ![Note View](screenshots/note_view.png) |
 | :---: | :---: |
 | *Modern Landing Page & Quick Stats* | *Clear, concise Note Reader & Download section* |
 
-| ![Dashboard](https://via.placeholder.com/600x338?text=Dashboard+Preview) | ![Admin Panel](https://via.placeholder.com/600x338?text=Admin+Panel+Preview) |
+| ![Dashboard](screenshots/dashboard.png) | ![Admin Panel](screenshots/admin_panel.png) |
 | :---: | :---: |
 | *Personalized Metric Dashboard* | *Administrator Command Center* |
+
+| ![User Profile](screenshots/profile.png) | |
+| :---: | :---: |
+| *Beautiful Glassmorphic User Profile* | |
 
 ---
 
