@@ -50,7 +50,7 @@ Built entirely with Python/Flask on the backend and pure HTML/CSS/JS on the fron
 <a name="demo"></a>
 ## 🌐 Live Demo
 
-🔗 **[Your Live Render Demo URL goes here]**
+🔗 **[https://campusnotes-8crf.onrender.com/]**
 
 > Optimal on both desktop and mobile platforms!
 
