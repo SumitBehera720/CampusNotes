@@ -2,7 +2,7 @@
 
 <img src="https://img.shields.io/badge/CampusNotes-4f46e5?style=for-the-badge&logo=readthedocs&logoColor=white" alt="CampusNotes" height="60"/>
 
-# CampusNotes
+# CampusNotes – Study Smarter Together
 
 ### The Ultimate Premium Academic Note-Sharing Platform Built with Flask, PostgreSQL & Supabase
 
