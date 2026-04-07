@@ -110,55 +110,74 @@ if os.environ.get('RENDER'):
     if pw and ' ' in pw:
         print("DEBUG WARNING: MAIL_PASSWORD contains spaces. Please remove spaces in Render Dashboard.")
 
+# --- Session & Security Config ---
 import threading
+import requests
 
-def send_async_email(app, msg):
+def send_async_email(app, subject, recipient, body, html):
     with app.app_context():
         try:
-            mail.send(msg)
+            api_key = os.environ.get('MAIL_PASSWORD')
+            sender_email = os.environ.get('MAIL_USERNAME')
+            
+            if not api_key or not sender_email:
+                print("Mail error: Missing MAIL_PASSWORD or MAIL_USERNAME")
+                return
+                
+            url = "https://api.brevo.com/v3/smtp/email"
+            headers = {
+                "accept": "application/json",
+                "api-key": api_key,
+                "content-type": "application/json"
+            }
+            payload = {
+                "sender": {"email": sender_email},
+                "to": [{"email": recipient}],
+                "subject": subject,
+                "htmlContent": html,
+                "textContent": body
+            }
+            
+            response = requests.post(url, json=payload, headers=headers)
+            if response.status_code not in [201, 200]:
+                print(f"Brevo API error: {response.text}")
+            else:
+                print("Background mail sent successfully via API!")
         except Exception as e:
-            print(f"Background mail error: {e}")
+            print(f"Background mail exception: {e}")
 
 def send_verification_email(email):
-    """Generate token and send verification email in background."""
-    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
-        print("Mail error: Credentials not set in config.")
-        return False
+    """Generate token and send verification email using Brevo API."""
     try:
         token = ts.dumps(email, salt='email-confirm')
         confirm_url = url_for('verify_email', token=token, _external=True)
         
-        msg = Message('Verify Your CampusNotes Account',
-                      recipients=[email])
-        msg.body = f'Welcome to CampusNotes! Please verify your account by clicking the link: {confirm_url}'
-        msg.html = render_template('auth/verify_email_msg.html', confirm_url=confirm_url)
+        subject = 'Verify Your CampusNotes Account'
+        body = f'Welcome to CampusNotes! Please verify your account by clicking the link: {confirm_url}'
+        html = render_template('auth/verify_email_msg.html', confirm_url=confirm_url)
         
-        # Start background thread
-        threading.Thread(target=send_async_email, args=(app, msg)).start()
+        threading.Thread(target=send_async_email, args=(app, subject, email, body, html)).start()
         return True
     except Exception as e:
         print(f"Mail prep error: {e}")
         return False
 
 def send_reset_email(email):
-    """Generate token and send password reset email in background."""
+    """Generate token and send password reset email using Brevo API."""
     try:
         token = ts.dumps(email, salt='password-reset')
         reset_url = url_for('reset_password_with_token', token=token, _external=True)
         
-        msg = Message('Reset Your CampusNotes Password',
-                      recipients=[email])
-        msg.body = f'Click the link to reset your CampusNotes password: {reset_url}'
-        msg.html = render_template('auth/reset_password_msg.html', reset_url=reset_url)
+        subject = 'Reset Your CampusNotes Password'
+        body = f'Click the link to reset your CampusNotes password: {reset_url}'
+        html = render_template('auth/reset_password_msg.html', reset_url=reset_url)
         
-        # Start background thread
-        threading.Thread(target=send_async_email, args=(app, msg)).start()
+        threading.Thread(target=send_async_email, args=(app, subject, email, body, html)).start()
         return True
     except Exception as e:
         print(f"Mail prep error: {e}")
         return False
 
-# --- Session & Security Config ---
 IS_PROD = os.environ.get('RENDER') is not None
 app.config.update(
     SESSION_COOKIE_SECURE=IS_PROD,
