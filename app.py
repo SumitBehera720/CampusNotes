@@ -134,7 +134,7 @@ def send_verification_email(email):
         msg.html = render_template('auth/verify_email_msg.html', confirm_url=confirm_url)
         
         # Start background thread
-        threading.Thread(target=send_async_email, args=(app._get_current_object(), msg)).start()
+        threading.Thread(target=send_async_email, args=(app, msg)).start()
         return True
     except Exception as e:
         print(f"Mail prep error: {e}")
@@ -152,7 +152,7 @@ def send_reset_email(email):
         msg.html = render_template('auth/reset_password_msg.html', reset_url=reset_url)
         
         # Start background thread
-        threading.Thread(target=send_async_email, args=(app._get_current_object(), msg)).start()
+        threading.Thread(target=send_async_email, args=(app, msg)).start()
         return True
     except Exception as e:
         print(f"Mail prep error: {e}")
