@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}Privacy Policy — CampusNotes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legal-hub {
+        min-height: 100vh;
+        padding: 8rem 2rem;
+        background: radial-gradient(circle at 0% 0%, #f1f5f9 0%, #fff 100%);
+        font-family: 'Inter', sans-serif;
+        color: #0f172a;
+    }
+
+    .hub-header {
+        max-width: 800px;
+        margin: 0 auto 6rem;
+        text-align: center;
+    }
+
+    .hub-header h1 {
+        font-weight: 900;
+        font-size: clamp(3rem, 8vw, 5rem);
+        letter-spacing: -0.05em;
+        line-height: 0.9;
+        margin-bottom: 2rem;
+    }
+
+    .header-accent {
+        display: block;
+        color: var(--primary);
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+
+    .hub-grid {
+        max-width: 850px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 3rem;
+    }
+
+    .hub-block {
+        position: relative;
+        padding: 4rem;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 32px;
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.04);
+        transition: transform 0.3s ease;
+    }
+
+    .hub-block:hover {
+        transform: scale(1.015);
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .block-number {
+        position: absolute;
+        top: -1rem;
+        right: 4rem;
+        font-size: 8rem;
+        font-weight: 900;
+        color: rgba(79, 70, 229, 0.05);
+        z-index: -1;
+    }
+
+    .hub-block h2 {
+        font-weight: 800;
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.02em;
+        color: #050505;
+    }
+
+    .hub-block p {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #475569;
+    }
+
+    .hub-tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 2rem;
+    }
+
+    .hub-tag {
+        background: #fff;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .brand-btn-cta {
+        display: inline-block;
+        margin-top: 6rem;
+        padding: 1.2rem 3.5rem;
+        background: var(--primary);
+        color: #fff;
+        border-radius: 100px;
+        text-decoration: none;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        box-shadow: 0 15px 30px rgba(79, 70, 229, 0.25);
+    }
+
+    .brand-btn-cta:hover {
+        background: #050505;
+        transform: translateY(-5px);
+    }
+
+    @media (max-width: 600px) {
+        .hub-block {
+            padding: 3rem 2rem;
+        }
+
+        .hub-header h1 {
+            font-size: 3rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-hub">
+    <header class="hub-header">
+        <span class="header-accent">CampusNotes Privacy</span>
+        <h1>Privacy <br>Policy</h1>
+        <p style="font-size: 1.2rem; color: #64748b; margin-top: 2rem;">Total transparency. Total security. Total
+            student control.</p>
+    </header>
+
+    <div class="hub-grid">
+        <!-- 01 INTRODUCTION -->
+        <section class="hub-block">
+            <span class="block-number">01</span>
+            <h2>Introduction</h2>
+            <p>Welcome to CampusNotes. This Privacy Policy is here to tell you how we protect the information you trust
+                us with so you can comfortably manage your academic notes.</p>
+        </section>
+
+        <!-- 02 INFORMATION WE COLLECT -->
+        <section class="hub-block">
+            <span class="block-number">02</span>
+            <h2>Information We Collect</h2>
+            <p>We only collect data that helps make your academic life easier. This includes your account details
+                (Email, User Identification) and metadata about the study resources you upload and download.</p>
+            <div class="hub-tag-list">
+                <span class="hub-tag">Account Login</span>
+                <span class="hub-tag">Upload History</span>
+            </div>
+        </section>
+
+        <!-- 03 HOW WE USE INFORMATION -->
+        <section class="hub-block">
+            <span class="block-number">03</span>
+            <h2>How We Use Information</h2>
+            <p>The primary reason we collect your information is to personalize your study experience. We use data to
+                recommend high-quality notes and process your requests more efficiently.</p>
+            <div class="hub-tag-list">
+                <span class="hub-tag">Study Insights</span>
+                <span class="hub-tag">Notes Personalization</span>
+            </div>
+        </section>
+
+        <!-- 04 DATA SHARING -->
+        <section class="hub-block">
+            <span class="block-number">04</span>
+            <h2>Data Sharing</h2>
+            <p>CampusNotes has a strict policy: We do not sell your personal information. We only share anonymized
+                analytical data with educational partners to improve our platform's academic reach.</p>
+            <div class="hub-tag-list">
+                <span class="hub-tag">Zero Selling</span>
+                <span class="hub-tag">Safety First</span>
+            </div>
+        </section>
+
+        <!-- 05 COOKIES -->
+        <section class="hub-block">
+            <span class="block-number">05</span>
+            <h2>Cookies</h2>
+            <p>We use small cookies solely for session management. They help our system remember that you're logged in
+                as you move from one subject note to another.</p>
+        </section>
+
+        <!-- 06 DATA SECURITY -->
+        <section class="hub-block">
+            <span class="block-number">06</span>
+            <h2>Data Security</h2>
+            <p>Every note and account on our platform is protected by SSL encryption. We perform regular security audits
+                to ensure that your academic identity and content remain secure.</p>
+        </section>
+
+        <!-- 07 USER RIGHTS -->
+        <section class="hub-block">
+            <span class="block-number">07</span>
+            <h2>User Rights</h2>
+            <p>You are the owner of your data. You have the total right to access, edit, or permanently remove your
+                personal info and any uploaded materials from our database.</p>
+            <div class="hub-tag-list">
+                <span class="hub-tag">Right to Erasure</span>
+                <span class="hub-tag">Data Access</span>
+            </div>
+        </section>
+
+        <!-- 08 CHILDREN’S PRIVACY -->
+        <section class="hub-block">
+            <span class="block-number">08</span>
+            <h2>Children’s Privacy</h2>
+            <p>CampusNotes is intended for university/college-level students. We do not knowingly collect information
+                from children under the age of 13. If discovered, such data is deleted immediately.</p>
+        </section>
+
+        <!-- 09 CHANGES TO POLICY -->
+        <section class="hub-block">
+            <span class="block-number">09</span>
+            <h2>Changes to Policy</h2>
+            <p>As we add new learning features, our privacy standards evolve. We will notify our users about significant
+                updates via our dashboard or direct email notification.</p>
+        </section>
+
+        <!-- 10 CONTACT US -->
+        <section class="hub-block" style="border-color: var(--primary);">
+            <span class="block-number">10</span>
+            <h2>Contact Us</h2>
+            <p>Questions about your data or our security practices? Our dedicated privacy and support team is ready to
+                respond to your specific inquiries.</p>
+            <div style="margin-top: 2rem;">
+                <a href="{{ url_for('helpdesk_contact') }}"
+                    style="color: var(--primary); font-weight: 800; text-decoration: none;">Launch Support Form →</a>
+            </div>
+        </section>
+    </div>
+
+    <div style="text-align: center;">
+        <a href="/" class="brand-btn-cta">Return to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% block title %}About Us — CampusNotes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legal-hub {
+        min-height: 100vh;
+        padding: 8rem 2rem;
+        background: radial-gradient(circle at 100% 0%, #f3f4f6 0%, #ffffff 100%);
+        font-family: 'Inter', sans-serif;
+        color: #0f172a;
+    }
+
+    .hub-header {
+        max-width: 800px;
+        margin: 0 auto 5rem;
+        text-align: center;
+    }
+
+    .hub-header h1 {
+        font-weight: 900;
+        font-size: clamp(3rem, 8vw, 5rem);
+        letter-spacing: -0.05em;
+        line-height: 1;
+        margin-bottom: 2rem;
+    }
+
+    .header-accent {
+        display: block;
+        color: var(--primary);
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+
+    .about-story-container {
+        max-width: 800px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 3rem;
+    }
+
+    .glass-story-panel {
+        position: relative;
+        padding: 4rem;
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 32px;
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.04);
+    }
+
+    .glass-story-panel h2 {
+        font-weight: 800;
+        font-size: 2.25rem;
+        margin-bottom: 2rem;
+        color: #050505;
+        letter-spacing: -0.03em;
+    }
+
+    .glass-story-panel p {
+        font-size: 1.15rem;
+        line-height: 1.8;
+        color: #475569;
+        margin-bottom: 1.5rem;
+    }
+
+    .sumit-signature {
+        display: inline-block;
+        margin-top: 3rem;
+        padding: 1.5rem;
+        border-left: 4px solid var(--primary);
+        background: rgba(79, 70, 229, 0.03);
+        border-radius: 0 16px 16px 0;
+    }
+
+    .sumit-signature span {
+        display: block;
+        font-weight: 800;
+        color: #050505;
+        font-size: 1.25rem;
+    }
+
+    .vision-block {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+
+    .vision-card {
+        background: #fff;
+        padding: 2.5rem;
+        border-radius: 24px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .vision-card h3 {
+        font-weight: 800;
+        margin-bottom: 1rem;
+        color: var(--primary);
+    }
+
+    .social-links-grid {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 3rem;
+        flex-wrap: wrap;
+    }
+
+    .social-link-item {
+        background: #050505;
+        color: #fff;
+        padding: 1rem 2rem;
+        border-radius: 100px;
+        text-decoration: none;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .social-link-item:hover {
+        background: var(--primary);
+        transform: translateY(-5px);
+    }
+
+    @media (max-width: 600px) {
+        .glass-story-panel {
+            padding: 3rem 2rem;
+        }
+
+        .social-link-item {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-hub">
+    <header class="hub-header">
+        <span class="header-accent">The Story of CampusNotes</span>
+        <h1>Simple. <br>Authentic.</h1>
+    </header>
+
+    <div class="about-story-container">
+        <!-- THE MAIN STORY SECTION -->
+        <section class="glass-story-panel">
+            <h2>Hi, I’m Sumit.</h2>
+            <p>I’m a developer passionate about building useful platforms for students. I created CampusNotes as a solo
+                developer with one goal in mind: <strong>Simplicity.</strong></p>
+
+            <p>CampusNotes is a platform where students can easily share and discover academic notes. I built this
+                because I believe studying should be a collaborative journey, not a solo struggle.</p>
+
+            <p>This platform is designed to help you access quality study materials, learn faster, and support each
+                other throughout your academic journey.</p>
+
+            <div class="sumit-signature">
+                <span>Sumit Behera</span>
+                <p style="margin:0; font-size: 0.9rem; opacity: 0.7;">Founder & Solo Developer</p>
+            </div>
+        </section>
+
+        <!-- VISION & NEXT STEPS -->
+        <div class="vision-block">
+            <div class="vision-card">
+                <h3>The Vision</h3>
+                <p>My goal is to make learning more accessible, simple, and collaborative for students across all
+                    campuses.</p>
+            </div>
+            <div class="vision-card">
+                <h3>What’s Next 🚀</h3>
+                <p>I’m continuously improving CampusNotes to make it faster, more useful, and better for every student.
+                </p>
+            </div>
+        </div>
+
+        <!-- FEEDBACK / CTA SECTION -->
+        <section class="glass-story-panel" style="text-align: center; border-color: var(--primary);">
+            <h2>Have Feedback?</h2>
+            <p>I’m building this for you. If you have any ideas or suggestions, I’d love to hear them.</p>
+            <div style="margin-top: 1.5rem;">
+                <p style="font-weight: 700; color: var(--primary); font-size: 1.25rem;">👉 <a
+                        href="{{ url_for('helpdesk_contact') }}"
+                        style="color: inherit; text-decoration: underline;">Contact Us anytime</a></p>
+            </div>
+        </section>
+
+        <!-- CONNECT WITH ME SECTION -->
+        <div style="text-align: center; margin-top: 2rem;">
+            <p
+                style="text-transform: uppercase; letter-spacing: 0.2em; font-weight: 800; opacity: 0.5; font-size: 0.8rem;">
+                Connect with Me</p>
+            <div class="social-links-grid">
+                <a href="#" class="social-link-item">GitHub</a>
+                <a href="#" class="social-link-item">LinkedIn</a>
+                <a href="#" class="social-link-item">Portfolio</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% block title %}Help Center — CampusNotes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .help-hero {
+        background: #050505;
+        color: #fff;
+        padding: 6rem 2rem;
+        text-align: center;
+        border-bottom: 4px solid var(--primary);
+    }
+
+    .help-hero h1 {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        letter-spacing: -0.04em;
+        margin-bottom: 1.5rem;
+    }
+
+    .help-hero p {
+        font-size: 1.2rem;
+        opacity: 0.7;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .features-grid {
+        max-width: 1200px;
+        margin: -3rem auto 4rem;
+        padding: 0 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        align-items: start;
+        /* Fixes the stretching of adjacent cards */
+    }
+
+    .feature-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        padding: 2.5rem;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-8px);
+        border-color: var(--primary);
+        box-shadow: 0 30px 60px rgba(79, 70, 229, 0.1);
+    }
+
+    .feature-icon-box {
+        width: 60px;
+        height: 60px;
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        transition: background 0.3s ease;
+    }
+
+    .feature-card:hover .feature-icon-box {
+        background: var(--primary);
+        color: #fff;
+    }
+
+    .feature-card h3 {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: 1.5rem;
+        margin: 0;
+    }
+
+    .feature-desc {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-size: 1rem;
+        display: none;
+        /* Hidden by default */
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .feature-card.active .feature-desc {
+        display: block;
+        animation: fadeIn 0.4s ease;
+    }
+
+    .feature-toggle-icon {
+        margin-left: auto;
+        transition: transform 0.3s ease;
+        opacity: 0.5;
+    }
+
+    .feature-card.active .feature-toggle-icon {
+        transform: rotate(180deg);
+        opacity: 1;
+        color: var(--primary);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .still-need-help {
+        text-align: center;
+        padding: 5rem 0;
+        background: var(--bg-secondary);
+        margin-top: 4rem;
+    }
+
+    .still-need-help h2 {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+
+    .btn-contact-luxury {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: #050505;
+        color: #fff;
+        padding: 1rem 2.5rem;
+        border-radius: 50px;
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+        border: 2px solid transparent;
+    }
+
+    .btn-contact-luxury:hover {
+        background: var(--primary);
+        transform: scale(1.05);
+        box-shadow: 0 15px 30px rgba(79, 70, 229, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="help-hero">
+    <h1>Help Center</h1>
+    <p>Explore the features of CampusNotes and learn how to master your studies.</p>
+</section>
+
+<div class="features-grid">
+    <!-- FEATURE 1 -->
+    <div class="feature-card" onclick="this.classList.toggle('active')">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div class="feature-icon-box">📚</div>
+            <h3>Browse Notes</h3>
+            <span class="feature-toggle-icon">▼</span>
+        </div>
+        <div class="feature-desc">
+            <p><strong>What is it?</strong> A powerful repository of study materials curated by students like you.</p>
+            <p><strong>How to use:</strong> Search by subject, college, or tags. Filter by difficulty (e.g.,
+                Exam-Oriented) to find exactly what you need to ace your next test.</p>
+        </div>
+    </div>
+
+    <!-- FEATURE 2 -->
+    <div class="feature-card" onclick="this.classList.toggle('active')">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div class="feature-icon-box">📤</div>
+            <h3>Upload & Share</h3>
+            <span class="feature-toggle-icon">▼</span>
+        </div>
+        <div class="feature-desc">
+            <p><strong>What is it?</strong> Your personal contribution to the community. Share your PDFs, hand-written
+                scans, or PYQs.</p>
+            <p><strong>How to use:</strong> Click "Upload" in the menu, drag and drop your file, add a catchy title, and
+                you're good to go. Once approved, you'll start earning points!</p>
+        </div>
+    </div>
+
+    <!-- FEATURE 3 -->
+    <div class="feature-card" onclick="this.classList.toggle('active')">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div class="feature-icon-box">⚖️</div>
+            <h3>Note Comparison</h3>
+            <span class="feature-toggle-icon">▼</span>
+        </div>
+        <div class="feature-desc">
+            <p><strong>What is it?</strong> Our "Expert Pick" tool that helps you choose between two similar notes.</p>
+            <p><strong>How to use:</strong> Enter two note IDs or link to see a side-by-side breakdown of ratings,
+                download count, and quality metrics before you hit download.</p>
+        </div>
+    </div>
+
+    <!-- FEATURE 4 -->
+    <div class="feature-card" onclick="this.classList.toggle('active')">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div class="feature-icon-box">🏆</div>
+            <h3>Leaderboard</h3>
+            <span class="feature-toggle-icon">▼</span>
+        </div>
+        <div class="feature-desc">
+            <p><strong>What is it?</strong> The "Hall of Fame" for the top contributors of CampusNotes.</p>
+            <p><strong>How to use:</strong> Earn points by uploading high-quality notes and getting downloads. The top 3
+                users get featured on the global leaderboard!</p>
+        </div>
+    </div>
+
+    <!-- FEATURE 5 -->
+    <div class="feature-card" onclick="this.classList.toggle('active')">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div class="feature-icon-box">📋</div>
+            <h3>Note Requests</h3>
+            <span class="feature-toggle-icon">▼</span>
+        </div>
+        <div class="feature-desc">
+            <p><strong>What is it?</strong> A community wish-list for notes that don't exist yet.</p>
+            <p><strong>How to use:</strong> Can't find notes for a specific topic? Post a request! Other students can
+                see your request and upload matching notes for you.</p>
+        </div>
+    </div>
+
+    <!-- FEATURE 6 -->
+    <div class="feature-card" onclick="this.classList.toggle('active')">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div class="feature-icon-box">🎖️</div>
+            <h3>Badges & Rewards</h3>
+            <span class="feature-toggle-icon">▼</span>
+        </div>
+        <div class="feature-desc">
+            <p><strong>What is it?</strong> A gamified reward system for your academic journey.</p>
+            <p><strong>How to use:</strong> Unlock badges like "Early Bird" or "Expert Uploader" automatically as you
+                use the site. These badge colors appear on your profile!</p>
+        </div>
+    </div>
+</div>
+
+<section class="still-need-help">
+    <h2>Still need help?</h2>
+    <p>Our support team is ready to assist you personally.</p>
+    <a href="{{ url_for('helpdesk_contact') }}" class="btn-contact-luxury">
+        <span>Visit Support</span>
+        <span>➡️</span>
+    </a>
+</section>
+{% endblock %}

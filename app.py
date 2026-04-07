@@ -139,12 +139,57 @@ def send_async_email(app, subject, recipient, body, html):
             }
             
             response = requests.post(url, json=payload, headers=headers)
+            print(f"Brevo API Send Status: {response.status_code}")
             if response.status_code not in [201, 200]:
                 print(f"Brevo API error: {response.text}")
             else:
                 print("Background mail sent successfully via API!")
         except Exception as e:
             print(f"Background mail exception: {e}")
+
+@app.route('/privacy')
+def privacy(): return render_template('legal/privacy.html')
+
+@app.route('/terms')
+def terms(): return render_template('legal/terms.html')
+
+@app.route('/help')
+def help_page():
+    return render_template('legal/help.html')
+
+@app.route('/contact-us', methods=['GET', 'POST'])
+def helpdesk_contact():
+    if request.method == 'POST':
+        # ... logic ...
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        subject = request.form.get('subject', '').strip()
+        message = request.form.get('message', '').strip()
+        
+        if not all([name, email, subject, message]):
+            flash('Please fill out all fields.', 'error')
+            return render_template('legal/support.html')
+            
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
+        support_subject = f"Support Request: {subject}"
+        support_body = f"New help request from {name} ({email}):\n\nSubject: {subject}\n\nMessage:\n{message}"
+        support_html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; color: #333;">
+            <h2 style="color: #4f46e5;">New Support Request</h2>
+            <p><strong>From:</strong> {name} ({email})</p>
+            <p><strong>Subject:</strong> {subject}</p>
+            <div style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-left: 4px solid #4f46e5;">
+                <p style="white-space: pre-wrap;">{message}</p>
+            </div>
+        </div>
+        """
+        # Send email to the site administrator
+        threading.Thread(target=send_async_email, args=(app, support_subject, admin_email, support_body, support_html)).start()
+        
+        flash('Your message has been sent! We will get back to you soon.', 'success')
+        return redirect(url_for('helpdesk_contact'))
+        
+    return render_template('legal/support.html')
 
 def send_verification_email(email):
     """Generate token and send verification email using Brevo API."""
@@ -1605,6 +1650,10 @@ def ensure_db_initialized():
 # NOTE: Do NOT call pg_pool.open() here at module level.
 # It is opened lazily inside _ensure_pool_open() on the first real request.
 # This prevents Gunicorn worker fork/startup race conditions.
+
+@app.route('/about')
+def about_page():
+    return render_template('legal/about.html')
 
 if __name__ == '__main__':
     init_db()

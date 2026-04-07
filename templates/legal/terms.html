@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% block title %}Terms of Service — CampusNotes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legal-hub {
+        min-height: 100vh;
+        padding: 8rem 2rem;
+        background: radial-gradient(circle at 100% 100%, #f1f5f9 0%, #fff 100%);
+        font-family: 'Inter', sans-serif;
+        color: #0f172a;
+    }
+
+    .hub-header {
+        max-width: 800px;
+        margin: 0 auto 6rem;
+        text-align: center;
+    }
+
+    .hub-header h1 {
+        font-weight: 900;
+        font-size: clamp(3rem, 8vw, 5rem);
+        letter-spacing: -0.05em;
+        line-height: 0.9;
+        margin-bottom: 2rem;
+    }
+
+    .header-accent {
+        display: block;
+        color: var(--primary);
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+
+    .hub-grid {
+        max-width: 850px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 3rem;
+    }
+
+    .hub-block {
+        position: relative;
+        padding: 4rem;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 32px;
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.04);
+        transition: transform 0.3s ease;
+    }
+
+    .hub-block:hover {
+        transform: scale(1.015);
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .block-number {
+        position: absolute;
+        top: -1rem;
+        right: 4rem;
+        font-size: 8rem;
+        font-weight: 900;
+        color: rgba(79, 70, 229, 0.05);
+        z-index: -1;
+    }
+
+    .hub-block h2 {
+        font-weight: 800;
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.02em;
+        color: #050505;
+    }
+
+    .hub-block p {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #475569;
+    }
+
+    .hub-tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 2rem;
+    }
+
+    .hub-tag {
+        background: #fff;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .brand-btn-cta {
+        display: inline-block;
+        margin-top: 6rem;
+        padding: 1.2rem 3.5rem;
+        background: var(--primary);
+        color: #fff;
+        border-radius: 100px;
+        text-decoration: none;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        box-shadow: 0 15px 30px rgba(79, 70, 229, 0.25);
+    }
+
+    .brand-btn-cta:hover {
+        background: #050505;
+        transform: translateY(-5px);
+    }
+
+    @media (max-width: 600px) {
+        .hub-block {
+            padding: 3rem 2rem;
+        }
+
+        .hub-header h1 {
+            font-size: 3rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-hub">
+    <header class="hub-header">
+        <span class="header-accent">CampusNotes Terms</span>
+        <h1>Terms of <br>Service</h1>
+        <p style="font-size: 1.2rem; color: #64748b; margin-top: 2rem;">Authentic agreements for a thriving scholar
+            community.</p>
+    </header>
+
+    <div class="hub-grid">
+        <!-- 01 INTRODUCTION -->
+        <section class="hub-block">
+            <span class="block-number">01</span>
+            <h2>Introduction</h2>
+            <p>Welcome to CampusNotes. By accessing our platform, you agree to these legal terms. We aim to keep our
+                guidelines as clear and transparent as possible for our academic community.</p>
+        </section>
+
+        <!-- 02 USER RESPONSIBILITIES -->
+        <section class="hub-block">
+            <span class="block-number">02</span>
+            <h2>User Responsibilities</h2>
+            <p>You agree to use CampusNotes for lawful, educational purposes. You are responsible for ensuring your
+                contributions follow academic integrity standards of your institution.</p>
+            <div class="hub-tag-list">
+                <span class="hub-tag">Lawful Use</span>
+                <span class="hub-tag">Integrity</span>
+            </div>
+        </section>
+
+        <!-- 03 CONTENT OWNERSHIP -->
+        <section class="hub-block">
+            <span class="block-number">03</span>
+            <h2>Content Ownership</h2>
+            <p>You retain the full copyright of any study materials you upload. By sharing, you grant CampusNotes a
+                non-exclusive license to host and display your content to our global student network.</p>
+            <div class="hub-tag-list">
+                <span class="hub-tag">Creator Rights</span>
+                <span class="hub-tag">Global Access</span>
+            </div>
+        </section>
+
+        <!-- 04 ACCOUNT RULES -->
+        <section class="hub-block">
+            <span class="block-number">04</span>
+            <h2>Account Rules</h2>
+            <p>You must prevent unauthorized access to your account. Notify us immediately if you suspect a security
+                breach. Accounts are non-transferable.</p>
+        </section>
+
+        <!-- 05 PROHIBITED ACTIVITIES -->
+        <section class="hub-block">
+            <span class="block-number">05</span>
+            <h2>Prohibited Activities</h2>
+            <p>Users may not engage in scraping, spamming, or uploading malicious software. We have a zero-tolerance
+                policy for harassment or the distribution of copyrighted textbooks without permission.</p>
+            <div class="hub-tag-list">
+                <span class="hub-tag">No Scraping</span>
+                <span class="hub-tag">No Copyright Infringement</span>
+            </div>
+        </section>
+
+        <!-- 06 DISCLAIMER -->
+        <section class="hub-block">
+            <span class="block-number">06</span>
+            <h2>Disclaimer</h2>
+            <p>CampusNotes is provided "as is." While we verify most content, we do not guarantee the absolute accuracy
+                of every note uploaded by the community. Use these resources as study aids alongside your textbooks.</p>
+        </section>
+
+        <!-- 07 LIMITATION OF LIABILITY -->
+        <section class="hub-block">
+            <span class="block-number">07</span>
+            <h2>Limitation of Liability</h2>
+            <p>CampusNotes and its founders shall not be liable for any indirect or incidental damages resulting from
+                your use of the platform or study results.</p>
+        </section>
+
+        <!-- 08 TERMINATION -->
+        <section class="hub-block">
+            <span class="block-number">08</span>
+            <h2>Termination</h2>
+            <p>We reserve the right to suspend or terminate accounts that violate our community standards or legal terms
+                at our sole discretion.</p>
+        </section>
+
+        <!-- 09 CHANGES TO TERMS -->
+        <section class="hub-block">
+            <span class="block-number">09</span>
+            <h2>Changes to Terms</h2>
+            <p>Our platform is growing. We may update these terms periodically. Your continued use of the site signifies
+                your acceptance of any new terms.</p>
+        </section>
+
+        <!-- 10 CONTACT US -->
+        <section class="hub-block" style="border-color: var(--primary);">
+            <span class="block-number">10</span>
+            <h2>Contact Us</h2>
+            <p>Have questions about these terms or our community guidelines? Reach out directly to our legal and support
+                team.</p>
+            <div style="margin-top: 2rem;">
+                <a href="{{ url_for('helpdesk_contact') }}"
+                    style="color: var(--primary); font-weight: 800; text-decoration: none;">Launch Support Form →</a>
+            </div>
+        </section>
+    </div>
+
+    <div style="text-align: center;">
+        <a href="/" class="brand-btn-cta">Return to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
