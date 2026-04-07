@@ -101,8 +101,20 @@ app.config.update(
 mail = Mail(app)
 ts = URLSafeTimedSerializer(app.secret_key)
 
+# Debug: Check if variables are set on Render
+if os.environ.get('RENDER'):
+    user = os.environ.get('MAIL_USERNAME')
+    pw = os.environ.get('MAIL_PASSWORD')
+    print(f"DEBUG: MAIL_USERNAME is {'SET' if user else 'MISSING'}")
+    print(f"DEBUG: MAIL_PASSWORD is {'SET' if pw else 'MISSING'}")
+    if pw and ' ' in pw:
+        print("DEBUG WARNING: MAIL_PASSWORD contains spaces. Please remove spaces in Render Dashboard.")
+
 def send_verification_email(email):
     """Generate token and send verification email."""
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        print("Mail error: Credentials not set in config.")
+        return False
     try:
         token = ts.dumps(email, salt='email-confirm')
         confirm_url = url_for('verify_email', token=token, _external=True)
