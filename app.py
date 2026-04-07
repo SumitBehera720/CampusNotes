@@ -520,13 +520,14 @@ def init_db():
         # Migrations for existing DBs
         for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
                          ('is_verified', 'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0'),
-                         ('file_blobs', 'CREATE TABLE IF NOT EXISTS file_blobs(filename TEXT PRIMARY KEY, data BLOB)')]:
+                          ('file_blobs', 'CREATE TABLE IF NOT EXISTS file_blobs(filename TEXT PRIMARY KEY, data BLOB)')]:
             try: db.execute(sql)
             except: pass
+        db.execute("UPDATE users SET is_verified = 1 WHERE role = 'admin'")
         db.commit()
         if not db.execute("SELECT 1 FROM users WHERE email=?", (admin_email,)).fetchone():
-            db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(?,?,?,?,?)",
-                       ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626'))
+            db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color,is_verified) VALUES(?,?,?,?,?,?)",
+                       ('Admin', admin_email, hp(admin_pass), 'admin', '#dc2626', 1))
             print("\n" + "="*50)
             print(" DEFAULT ADMIN ACCOUNT CREATED")
             print(f" Email: {admin_email}")
@@ -1108,7 +1109,7 @@ def login():
         if u['status']=='blocked':
             flash('Account blocked.','error'); return render_template('auth/login.html')
         
-        if u['is_verified'] == 0:
+        if u['is_verified'] == 0 and u['role'] != 'admin':
             flash('Please verify your email before logging in.', 'warning')
             return render_template('auth/login.html')
             
