@@ -110,8 +110,17 @@ if os.environ.get('RENDER'):
     if pw and ' ' in pw:
         print("DEBUG WARNING: MAIL_PASSWORD contains spaces. Please remove spaces in Render Dashboard.")
 
+import threading
+
+def send_async_email(app, msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            print(f"Background mail error: {e}")
+
 def send_verification_email(email):
-    """Generate token and send verification email."""
+    """Generate token and send verification email in background."""
     if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
         print("Mail error: Credentials not set in config.")
         return False
@@ -123,14 +132,16 @@ def send_verification_email(email):
                       recipients=[email])
         msg.body = f'Welcome to CampusNotes! Please verify your account by clicking the link: {confirm_url}'
         msg.html = render_template('auth/verify_email_msg.html', confirm_url=confirm_url)
-        mail.send(msg)
+        
+        # Start background thread
+        threading.Thread(target=send_async_email, args=(app._get_current_object(), msg)).start()
         return True
     except Exception as e:
-        print(f"Mail send error: {e}")
+        print(f"Mail prep error: {e}")
         return False
 
 def send_reset_email(email):
-    """Generate token and send password reset email."""
+    """Generate token and send password reset email in background."""
     try:
         token = ts.dumps(email, salt='password-reset')
         reset_url = url_for('reset_password_with_token', token=token, _external=True)
@@ -139,10 +150,12 @@ def send_reset_email(email):
                       recipients=[email])
         msg.body = f'Click the link to reset your CampusNotes password: {reset_url}'
         msg.html = render_template('auth/reset_password_msg.html', reset_url=reset_url)
-        mail.send(msg)
+        
+        # Start background thread
+        threading.Thread(target=send_async_email, args=(app._get_current_object(), msg)).start()
         return True
     except Exception as e:
-        print(f"Mail send error: {e}")
+        print(f"Mail prep error: {e}")
         return False
 
 # --- Session & Security Config ---
