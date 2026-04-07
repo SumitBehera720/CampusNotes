@@ -87,12 +87,12 @@ ALLOWED_AVATAR_EXT = {'png','jpg','jpeg','gif','webp'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AVATAR_FOLDER, exist_ok=True)
 
-# --- Email Configuration (for Gmail SMTP) ---
+# --- Email Configuration (Brevo SMTP via Port 2525) ---
 app.config.update(
-    MAIL_SERVER='smtp.gmail.com',
-    MAIL_PORT=465,
-    MAIL_USE_TLS=False,
-    MAIL_USE_SSL=True,
+    MAIL_SERVER='smtp-relay.brevo.com',
+    MAIL_PORT=2525,  # Bypasses Render's firewall
+    MAIL_USE_TLS=True,
+    MAIL_USE_SSL=False,
     MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
     MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
     MAIL_DEFAULT_SENDER=os.environ.get('MAIL_USERNAME')
