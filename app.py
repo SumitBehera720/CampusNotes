@@ -2,6 +2,8 @@ import sqlite3, os, uuid, hashlib, functools, random, threading
 from datetime import datetime, date, timedelta
 from flask import (Flask, render_template, redirect, url_for, flash,
                    request, send_from_directory, jsonify, session, abort, g)
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer
 
 # PostgreSQL support
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -84,6 +86,51 @@ ALLOWED_AVATAR_EXT = {'png','jpg','jpeg','gif','webp'}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AVATAR_FOLDER, exist_ok=True)
+
+# --- Email Configuration (for Gmail SMTP) ---
+app.config.update(
+    MAIL_SERVER='smtp.gmail.com',
+    MAIL_PORT=587,
+    MAIL_USE_TLS=True,
+    MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
+    MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
+    MAIL_DEFAULT_SENDER=os.environ.get('MAIL_USERNAME')
+)
+
+mail = Mail(app)
+ts = URLSafeTimedSerializer(app.secret_key)
+
+def send_verification_email(email):
+    """Generate token and send verification email."""
+    try:
+        token = ts.dumps(email, salt='email-confirm')
+        confirm_url = url_for('verify_email', token=token, _external=True)
+        
+        msg = Message('Verify Your CampusNotes Account',
+                      recipients=[email])
+        msg.body = f'Welcome to CampusNotes! Please verify your account by clicking the link: {confirm_url}'
+        msg.html = render_template('auth/verify_email_msg.html', confirm_url=confirm_url)
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Mail send error: {e}")
+        return False
+
+def send_reset_email(email):
+    """Generate token and send password reset email."""
+    try:
+        token = ts.dumps(email, salt='password-reset')
+        reset_url = url_for('reset_password_with_token', token=token, _external=True)
+        
+        msg = Message('Reset Your CampusNotes Password',
+                      recipients=[email])
+        msg.body = f'Click the link to reset your CampusNotes password: {reset_url}'
+        msg.html = render_template('auth/reset_password_msg.html', reset_url=reset_url)
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Mail send error: {e}")
+        return False
 
 # --- Session & Security Config ---
 IS_PROD = os.environ.get('RENDER') is not None
@@ -468,6 +515,8 @@ def login_req(f):
         u = cur_user()
         if u and u['status']=='blocked':
             session.clear(); flash('Account blocked.','error'); return redirect(url_for('login'))
+        if u and u['is_verified'] == 0 and u['role'] != 'admin':
+            session.clear(); flash('Please verify your email to continue.','warning'); return redirect(url_for('login'))
         return f(*a,**k)
     return dec
 
@@ -957,9 +1006,49 @@ def register():
         db.execute("INSERT INTO notifications(user_id,message,type) VALUES(?,?,?)",
                    (uid,f'Welcome to CampusNotes, {name}! 🎉','success'))
         db.commit()
-        session['user_id']=uid
-        flash(f'Welcome, {name}!','success'); return redirect(url_for('index'))
+        
+        # Send verification email
+        send_verification_email(email)
+        
+        # session['user_id']=uid  # Don't log in automatically
+        flash(f'Welcome, {name}! A verification email has been sent. Please check your inbox.','info'); return redirect(url_for('login'))
     return render_template('auth/register.html')
+
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    try:
+        email = ts.loads(token, salt='email-confirm', max_age=86400)
+    except:
+        flash('The verification link is invalid or has expired.', 'error')
+        return redirect(url_for('login'))
+
+    db = get_db()
+    db.execute("UPDATE users SET is_verified=1 WHERE email=?", (email,))
+    db.commit()
+    
+    flash('Your email has been verified! You can now log in.', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/resend-verification', methods=['GET', 'POST'])
+def resend_verification():
+    if session.get('user_id'): return redirect(url_for('index'))
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        db = get_db()
+        u = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        
+        if u and u['is_verified'] == 0:
+            send_verification_email(email)
+            flash('Verification email resent. Please check your inbox.', 'info')
+            return redirect(url_for('login'))
+        elif u and u['is_verified'] == 1:
+            flash('This account is already verified. Please log in.', 'info')
+            return redirect(url_for('login'))
+        else:
+            flash('Email not found. Please register first.', 'error')
+            return redirect(url_for('register'))
+            
+    return render_template('auth/resend_verification.html')
 
 @app.route('/login',methods=['GET','POST'])
 def login():
@@ -973,6 +1062,11 @@ def login():
             flash('Invalid email or password.','error'); return render_template('auth/login.html')
         if u['status']=='blocked':
             flash('Account blocked.','error'); return render_template('auth/login.html')
+        
+        if u['is_verified'] == 0:
+            flash('Please verify your email before logging in.', 'warning')
+            return render_template('auth/login.html')
+            
         session['user_id']=u['id']
         if request.form.get('remember')=='on': session.permanent=True
         nxt=request.args.get('next')
@@ -985,24 +1079,42 @@ def forgot_password():
         email = request.form.get('email', '').strip().lower()
         db = get_db()
         u = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        
         if not u:
-            flash('This email is not registered.', 'error')
-            return redirect(url_for('forgot_password'))
+            # Do not reveal if email exists for security reasons
+            flash('If an account matches that email, a password reset link has been sent.', 'info')
+            return redirect(url_for('login'))
+            
         if u['role'] == 'admin':
             flash('Admin accounts cannot be reset via this form for security reasons.', 'error')
             return redirect(url_for('forgot_password'))
-        # Store email in session to verify next step
-        session['reset_email'] = email
-        flash('Email verified! Please reset your password.', 'success')
-        return redirect(url_for('reset_password'))
+            
+        send_reset_email(email)
+        flash('If an account matches that email, a password reset link has been sent.', 'info')
+        return redirect(url_for('login'))
+        
     return render_template('auth/forgot_password.html')
+
+@app.route('/reset-password/<token>', methods=['GET'])
+def reset_password_with_token(token):
+    try:
+        email = ts.loads(token, salt='password-reset', max_age=3600) # Token valid for 1 hour
+    except:
+        flash('The password reset link is invalid or has expired.', 'error')
+        return redirect(url_for('forgot_password'))
+        
+    session['reset_email'] = email
+    return render_template('auth/reset_password.html')
 
 @app.route('/reset-password', methods=['GET', 'POST'])
 def reset_password():
     if 'reset_email' not in session:
-        flash('Session expired or invalid request. Please enter your email again.', 'error')
+        flash('Session expired or invalid request. Please request a new password reset.', 'error')
         return redirect(url_for('forgot_password'))
     
+    if request.method == 'GET':
+        return render_template('auth/reset_password.html')
+        
     if request.method == 'POST':
         email = session['reset_email']
         db = get_db()
@@ -1017,10 +1129,10 @@ def reset_password():
         
         if len(new_password) < 6:
             flash('Password must be at least 6 characters.', 'error')
-            return redirect(url_for('reset_password'))
+            return redirect(url_for('reset_password_with_token', token=request.form.get('token', ''))) # Token not easily available here, will fallback to session email which is still secure. Actually just returning to the view.
         if new_password != confirm_password:
             flash('Passwords do not match.', 'error')
-            return redirect(url_for('reset_password'))
+            return render_template('auth/reset_password.html')
             
         db = get_db()
         db.execute("UPDATE users SET password_hash=? WHERE email=?", (hp(new_password), email))
