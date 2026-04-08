@@ -153,6 +153,52 @@
         transform: scale(1.05);
         box-shadow: 0 15px 30px rgba(79, 70, 229, 0.3);
     }
+
+    .feature-card-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        width: 100%;
+    }
+
+    @media (max-width: 600px) {
+        .help-hero { padding: 4rem 1.5rem; }
+        .help-hero h1 { font-size: 2.25rem; }
+        
+        .features-grid {
+            margin-top: -2rem;
+            padding: 0 1rem;
+            gap: 1.25rem;
+        }
+        
+        .feature-card {
+            padding: 1.5rem;
+            gap: 1rem;
+            border-radius: 16px;
+        }
+
+        .feature-card-header {
+            gap: 1rem;
+        }
+        
+        .feature-icon-box {
+            width: 44px;
+            height: 44px;
+            font-size: 1.25rem;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.15rem;
+        }
+
+        .feature-toggle-icon {
+            font-size: 0.8rem;
+        }
+
+        .still-need-help { padding: 3rem 1.5rem; }
+    }
 </style>
 {% endblock %}
 
@@ -165,7 +211,7 @@
 <div class="features-grid">
     <!-- FEATURE 1 -->
     <div class="feature-card" onclick="this.classList.toggle('active')">
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div class="feature-card-header">
             <div class="feature-icon-box">📚</div>
             <h3>Browse Notes</h3>
             <span class="feature-toggle-icon">▼</span>
@@ -179,7 +225,7 @@
 
     <!-- FEATURE 2 -->
     <div class="feature-card" onclick="this.classList.toggle('active')">
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div class="feature-card-header">
             <div class="feature-icon-box">📤</div>
             <h3>Upload & Share</h3>
             <span class="feature-toggle-icon">▼</span>
@@ -194,7 +240,7 @@
 
     <!-- FEATURE 3 -->
     <div class="feature-card" onclick="this.classList.toggle('active')">
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div class="feature-card-header">
             <div class="feature-icon-box">⚖️</div>
             <h3>Note Comparison</h3>
             <span class="feature-toggle-icon">▼</span>
@@ -208,7 +254,7 @@
 
     <!-- FEATURE 4 -->
     <div class="feature-card" onclick="this.classList.toggle('active')">
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div class="feature-card-header">
             <div class="feature-icon-box">🏆</div>
             <h3>Leaderboard</h3>
             <span class="feature-toggle-icon">▼</span>
@@ -222,7 +268,7 @@
 
     <!-- FEATURE 5 -->
     <div class="feature-card" onclick="this.classList.toggle('active')">
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div class="feature-card-header">
             <div class="feature-icon-box">📋</div>
             <h3>Note Requests</h3>
             <span class="feature-toggle-icon">▼</span>
@@ -236,7 +282,7 @@
 
     <!-- FEATURE 6 -->
     <div class="feature-card" onclick="this.classList.toggle('active')">
-        <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div class="feature-card-header">
             <div class="feature-icon-box">🎖️</div>
             <h3>Badges & Rewards</h3>
             <span class="feature-toggle-icon">▼</span>
