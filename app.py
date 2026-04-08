@@ -170,7 +170,7 @@ def helpdesk_contact():
             flash('Please fill out all fields.', 'error')
             return render_template('legal/support.html')
             
-        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
+        admin_email = os.environ.get('ADMIN_EMAIL', 'support4campusnotes@gmail.com')
         support_subject = f"Support Request: {subject}"
         support_body = f"New help request from {name} ({email}):\n\nSubject: {subject}\n\nMessage:\n{message}"
         support_html = f"""
@@ -469,7 +469,7 @@ def init_db():
             fulfilled_by INTEGER REFERENCES notes(id),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
         """)
-        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
+        admin_email = os.environ.get('ADMIN_EMAIL', 'support4campusnotes@gmail.com')
         admin_pass = os.environ.get('ADMIN_PASSWORD', 'CampusNotesAdmin@2025!Strong')
         if not db.execute("SELECT 1 FROM users WHERE email=%s", (admin_email,)).fetchone():
             db.execute("INSERT INTO users(name,email,password_hash,role,avatar_color) VALUES(%s,%s,%s,%s,%s)",
@@ -560,7 +560,7 @@ def init_db():
             fulfilled_by INTEGER REFERENCES notes(id),
             created_at TEXT DEFAULT(datetime('now')));
         """)
-        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@campusnotes.com')
+        admin_email = os.environ.get('ADMIN_EMAIL', 'support4campusnotes@gmail.com')
         admin_pass = os.environ.get('ADMIN_PASSWORD', 'CampusNotesAdmin@2025!Strong')
         # Migrations for existing DBs
         for col, sql in [('profile_picture', 'ALTER TABLE users ADD COLUMN profile_picture TEXT'),
