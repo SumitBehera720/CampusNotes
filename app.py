@@ -174,12 +174,27 @@ def helpdesk_contact():
         support_subject = f"Support Request: {subject}"
         support_body = f"New help request from {name} ({email}):\n\nSubject: {subject}\n\nMessage:\n{message}"
         support_html = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; color: #333;">
-            <h2 style="color: #4f46e5;">New Support Request</h2>
-            <p><strong>From:</strong> {name} ({email})</p>
-            <p><strong>Subject:</strong> {subject}</p>
-            <div style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-left: 4px solid #4f46e5;">
-                <p style="white-space: pre-wrap;">{message}</p>
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; padding: 20px; color: #333; background-color: #f9fafb; border-radius: 12px; margin: 0 auto; border: 1px solid #e5e7eb;">
+            <div style="text-align: center; padding: 25px 0;">
+                <img src="https://campusnotes-8crf.onrender.com/static/img/logo.png" alt="CampusNotes" style="height: 45px; width: auto; display: block; margin: 0 auto;">
+            </div>
+            <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); border: 1px solid #f3f4f6;">
+                <h2 style="color: #4f46e5; margin-top: 0; font-size: 20px; font-weight: 700; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-bottom: 20px;">New Support Request</h2>
+                <div style="margin-bottom: 15px;">
+                    <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">From</p>
+                    <p style="margin: 4px 0 0 0; font-size: 16px; font-weight: 500;">{name} (<a href="mailto:{email}" style="color: #4f46e5; text-decoration: none;">{email}</a>)</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">Subject</p>
+                    <p style="margin: 4px 0 0 0; font-size: 16px; font-weight: 600; color: #111827;">{subject}</p>
+                </div>
+                <div style="margin-top: 25px; padding: 20px; background: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 6px;">
+                    <p style="white-space: pre-wrap; margin: 0; line-height: 1.6; color: #374151; font-size: 15px;">{message}</p>
+                </div>
+            </div>
+            <div style="text-align: center; font-size: 13px; color: #9ca3af; margin-top: 25px;">
+                <p style="margin: 0;">&copy; 2025 CampusNotes · Digital Education for All</p>
+                <p style="margin: 8px 0 0 0;"><a href="https://campusnotes-8crf.onrender.com" style="color: #4f46e5; text-decoration: none; font-weight: 500;">Visit CampusNotes →</a></p>
             </div>
         </div>
         """
