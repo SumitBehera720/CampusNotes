@@ -25,7 +25,7 @@ if USE_PG:
         DATABASE_URL,
         min_size=1,
         max_size=3,
-        kwargs={"row_factory": dict_row, "autocommit": False, "connect_timeout": 30},
+        kwargs={"row_factory": dict_row, "autocommit": True, "connect_timeout": 30},
         open=False,          # Do NOT open at module load time
         reconnect_timeout=30,
         max_waiting=8,
